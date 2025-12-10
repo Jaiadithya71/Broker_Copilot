@@ -1,10 +1,20 @@
+import 'dotenv/config';
 import express from "express";
 import cors from "cors";
+import authRoutes from './src/routes/auth.js';
 import { renewals } from "./src/sampleData.js";
-const app = express();
-const PORT = process.env.PORT||4000;
-app.use(cors()); app.use(express.json());
+import { tokenStore } from './src/utils/tokenStore.js';
 
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
+app.use(express.json());
+
+// OAuth routes
+app.use('/auth', authRoutes);
+
+// Existing routes
 function computeScore(item){
   const now=new Date(); const exp=new Date(item.expiryDate);
   const days=Math.max(1, Math.round((exp-now)/(1000*60*60*24)));
@@ -16,16 +26,63 @@ function computeScore(item){
   return { value: bounded, breakdown:{ timeScore, premiumScore, touchpointScore, daysToExpiry: days } };
 }
 
-function withScores(list){ return list.map(i=>({...i, priorityScore: computeScore(i).value, _scoreBreakdown: computeScore(i).breakdown})).sort((a,b)=>b.priorityScore-a.priorityScore); }
+function withScores(list){ 
+  return list.map(i=>({
+    ...i, 
+    priorityScore: computeScore(i).value, 
+    _scoreBreakdown: computeScore(i).breakdown
+  })).sort((a,b)=>b.priorityScore-a.priorityScore); 
+}
 
 app.get("/api/renewals",(req,res)=>res.json({items: withScores(renewals)}));
-app.get("/api/renewals/:id",(req,res)=>{ const it=withScores(renewals).find(r=>r.id===req.params.id); if(!it) return res.status(404).json({error:"not found"}); res.json({item:it}); });
-app.get("/api/renewals/:id/brief",(req,res)=>{ const item=renewals.find(r=>r.id===req.params.id); if(!item) return res.status(404).json({error:"not found"}); const s=computeScore(item); const brief={ summary:`Client ${item.clientName} policy ${item.policyNumber} with ${item.carrier} expires ${item.expiryDate}.`, riskNotes:[ s.breakdown.daysToExpiry<=30? 'Renewal inside 30 days':'Renewal further out', item.recentTouchpoints===0? 'No recent touchpoints': item.recentTouchpoints+' touchpoints' ], keyActions:['Confirm exposures','Check claims','Align pricing'], outreachTemplate:`Subject: ${item.clientName} – renewal\n\nHi ${item.primaryContactName},\nYour policy is due ${item.expiryDate}...`, confidence: s.value>=80?'high': s.value>=60?'medium':'low', sources:[{type:'CRM', system:item.sourceSystem, recordId:item.crmRecordId}] , _scoreBreakdown: s.breakdown }; res.json({brief}); });
+
+app.get("/api/renewals/:id",(req,res)=>{ 
+  const it=withScores(renewals).find(r=>r.id===req.params.id); 
+  if(!it) return res.status(404).json({error:"not found"}); 
+  res.json({item:it}); 
+});
+
+app.get("/api/renewals/:id/brief",(req,res)=>{ 
+  const item=renewals.find(r=>r.id===req.params.id); 
+  if(!item) return res.status(404).json({error:"not found"}); 
+  const s=computeScore(item); 
+  const brief={ 
+    summary:`Client ${item.clientName} policy ${item.policyNumber} with ${item.carrier} expires ${item.expiryDate}.`, 
+    riskNotes:[ 
+      s.breakdown.daysToExpiry<=30? 'Renewal inside 30 days':'Renewal further out', 
+      item.recentTouchpoints===0? 'No recent touchpoints': item.recentTouchpoints+' touchpoints' 
+    ], 
+    keyActions:['Confirm exposures','Check claims','Align pricing'], 
+    outreachTemplate:`Subject: ${item.clientName} – renewal\n\nHi ${item.primaryContactName},\nYour policy is due ${item.expiryDate}...`, 
+    confidence: s.value>=80?'high': s.value>=60?'medium':'low', 
+    sources:[{type:'CRM', system:item.sourceSystem, recordId:item.crmRecordId}], 
+    _scoreBreakdown: s.breakdown 
+  }; 
+  res.json({brief}); 
+});
 
 app.get("/api/connectors",(req,res)=>{
-  const now=new Date(); const min=(m)=>new Date(now.getTime()-m*60000).toISOString();
-  res.json({connectors:[{name:'HubSpot CRM', status:'connected', lastSync:min(12)},{name:'Outlook Email', status:'connected', lastSync:min(18)},{name:'Policy Storage', status:'connected', lastSync:min(65)}]});
+  const now=new Date(); 
+  const min=(m)=>new Date(now.getTime()-m*60000).toISOString();
+  
+  const connectors = [
+    {
+      name:'HubSpot CRM', 
+      status: tokenStore.isHubSpotConnected() ? 'connected' : 'disconnected', 
+      lastSync: tokenStore.isHubSpotConnected() ? min(12) : null,
+      authUrl: '/auth/hubspot'
+    },
+    {
+      name:'Google (Gmail/Calendar)', 
+      status: tokenStore.isGoogleConnected() ? 'connected' : 'disconnected', 
+      lastSync: tokenStore.isGoogleConnected() ? min(18) : null,
+      authUrl: '/auth/google'
+    }
+  ];
+  
+  res.json({connectors});
 });
+
 app.post("/api/simulate-sync",(req,res)=>res.json({result:'triggered', at:new Date().toISOString()}));
 
 app.post("/api/qa",(req,res)=>{
@@ -41,5 +98,12 @@ app.post("/api/qa",(req,res)=>{
   res.json({answer: parts.join(' '), confidence:'medium', source:{system:item.sourceSystem, crmRecordId:item.crmRecordId}});
 });
 
-app.get("/",(req,res)=>res.send("running"));
-app.listen(PORT,()=>console.log('listening',PORT));
+app.get("/",(req,res)=>res.send("Broker Copilot Backend - OAuth Enabled"));
+
+app.listen(PORT, () => {
+  console.log('🚀 Server running on port', PORT);
+  console.log('📝 OAuth endpoints:');
+  console.log('   - HubSpot: http://localhost:' + PORT + '/auth/hubspot');
+  console.log('   - Google: http://localhost:' + PORT + '/auth/google');
+  console.log('   - Status: http://localhost:' + PORT + '/auth/status');
+});
