@@ -4,6 +4,11 @@ import { tokenStore } from '../utils/tokenStore.js';
 
 export class GoogleConnector {
   constructor() {
+    console.log('🔍 Google OAuth Config Check:');
+    console.log('Client ID:', googleConfig.clientId ? `${googleConfig.clientId.substring(0, 20)}...` : 'MISSING');
+    console.log('Client Secret:', googleConfig.clientSecret ? 'SET (length: ' + googleConfig.clientSecret.length + ')' : 'MISSING');
+    console.log('Redirect URI:', googleConfig.redirectUri);
+
     this.oauth2Client = new google.auth.OAuth2(
       googleConfig.clientId,
       googleConfig.clientSecret,

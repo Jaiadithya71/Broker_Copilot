@@ -2,10 +2,29 @@ import express from 'express';
 import { hubspotConnector } from '../connectors/hubspot.js';
 import { googleConnector } from '../connectors/google.js';
 import { tokenStore } from '../utils/tokenStore.js';
+import { googleConfig } from '../config/oauth.js';
 
 const router = express.Router();
 
 // ============ HubSpot (Private App - No OAuth needed) ============
+
+router.get('/debug/google-config', (req, res) => {
+  res.json({
+    clientId: googleConfig.clientId ? `${googleConfig.clientId.substring(0, 30)}...` : 'MISSING',
+    clientSecretSet: !!googleConfig.clientSecret,
+    clientSecretLength: googleConfig.clientSecret?.length || 0,
+    redirectUri: googleConfig.redirectUri,
+    scopesCount: googleConfig.scopes?.length || 0
+  });
+});
+
+router.get('/hubspot', (req, res) => {
+  res.json({ 
+    message: 'HubSpot uses Private App token - no OAuth needed',
+    connected: hubspotConnector.isConnected(),
+    testEndpoint: '/auth/test/hubspot'
+  });
+});
 
 // Test HubSpot connection
 router.get('/test/hubspot', async (req, res) => {
@@ -61,6 +80,16 @@ router.get('/google/callback', async (req, res) => {
 router.get('/test/google', async (req, res) => {
   const result = await googleConnector.testConnection();
   res.json(result);
+});
+
+// Test fetching emails
+router.get('/google/emails', async (req, res) => {
+  try {
+    const emails = await googleConnector.fetchEmails(5);
+    res.json({ success: true, count: emails.length, emails });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ============ Status ============

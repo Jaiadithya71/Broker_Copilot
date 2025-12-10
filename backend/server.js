@@ -70,7 +70,6 @@ app.get("/api/connectors",(req,res)=>{
       name:'HubSpot CRM', 
       status: tokenStore.isHubSpotConnected() ? 'connected' : 'disconnected', 
       lastSync: tokenStore.isHubSpotConnected() ? min(12) : null,
-      authUrl: '/auth/hubspot'
     },
     {
       name:'Google (Gmail/Calendar)', 
@@ -103,7 +102,7 @@ app.get("/",(req,res)=>res.send("Broker Copilot Backend - OAuth Enabled"));
 app.listen(PORT, () => {
   console.log('🚀 Server running on port', PORT);
   console.log('📝 OAuth endpoints:');
-  console.log('   - HubSpot: http://localhost:' + PORT + '/auth/hubspot');
+  console.log('   - HubSpot: http://localhost:' + PORT + '/auth/test/hubspot');
   console.log('   - Google: http://localhost:' + PORT + '/auth/google');
   console.log('   - Status: http://localhost:' + PORT + '/auth/status');
 });
