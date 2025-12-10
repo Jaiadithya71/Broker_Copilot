@@ -53,7 +53,12 @@ export default function App() {
     <div style={{ padding: 20, background: '#0a0e1a', minHeight: '100vh', color: '#e0e6ed' }}>
       <Header broker={broker} onLoginClick={() => setShowLogin(true)} onSync={handleSync} syncing={syncing} />
 
-      <ConnectorStatusBar connectors={connectors} syncStatus={syncStatus} dataSource={dataSource} />
+      <ConnectorStatusBar 
+        connectors={connectors} 
+        syncStatus={syncStatus} 
+        dataSource={dataSource}
+        onConnectionUpdate={reload}
+      />
 
       <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
         <RenewalPipeline items={items} selected={selected} onSelect={setSelected} />

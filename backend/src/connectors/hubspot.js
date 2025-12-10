@@ -13,23 +13,39 @@ export class HubSpotConnector {
 
   // Test connection
   async testConnection() {
+    console.log('🔗 [HubSpot Connector] Testing connection...');
+    
     if (!HUBSPOT_ACCESS_TOKEN) {
+      console.error('❌ [HubSpot Connector] No access token configured in environment');
       return { success: false, error: 'No access token configured' };
     }
 
     try {
+      console.log('🔗 [HubSpot Connector] Sending test request to HubSpot API...');
       const response = await axios.get('https://api.hubapi.com/crm/v3/objects/contacts', {
         headers: { 'Authorization': `Bearer ${HUBSPOT_ACCESS_TOKEN}` },
         params: { limit: 1 }
       });
       
+      const contactCount = response.data.total || 0;
+      console.log('✅ [HubSpot Connector] Connection successful!', {
+        timestamp: new Date().toISOString(),
+        contactCount: contactCount,
+        statusCode: response.status
+      });
+      
       return { 
         success: true, 
         message: 'HubSpot connection working!',
-        contactCount: response.data.total || 0
+        contactCount: contactCount
       };
     } catch (error) {
-      console.error('HubSpot connection error:', error.response?.data || error.message);
+      console.error('❌ [HubSpot Connector] Connection failed:', {
+        timestamp: new Date().toISOString(),
+        statusCode: error.response?.status,
+        errorMessage: error.response?.data?.message || error.message,
+        errorDetails: error.response?.data
+      });
       return { 
         success: false, 
         error: error.response?.data?.message || error.message 

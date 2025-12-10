@@ -28,7 +28,24 @@ router.get('/hubspot', (req, res) => {
 
 // Test HubSpot connection
 router.get('/test/hubspot', async (req, res) => {
+  console.log('🔐 [HubSpot Connection] Test initiated at:', new Date().toISOString());
+  console.log('🔐 [HubSpot Connection] Checking if token is configured...');
+  
   const result = await hubspotConnector.testConnection();
+  
+  if (result.success) {
+    console.log('✅ [HubSpot Connection] SUCCESS - Connection established!', {
+      timestamp: new Date().toISOString(),
+      contactCount: result.contactCount,
+      message: result.message
+    });
+  } else {
+    console.error('❌ [HubSpot Connection] FAILED - Connection error:', {
+      timestamp: new Date().toISOString(),
+      error: result.error
+    });
+  }
+  
   res.json(result);
 });
 
