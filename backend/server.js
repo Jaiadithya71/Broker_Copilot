@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from "express";
 import cors from "cors";
 import authRoutes from './src/routes/auth.js';
-import { renewals as sampleRenewals } from "./src/sampleData.js";
+import { renewals as sampleRenewals } from "./scripts/sampleData.js";
 import { tokenStore } from './src/utils/tokenStore.js';
 import { dataOrchestrator } from './src/services/dataOrchestrator.js';
 import { aiService } from './src/services/aiService.js';

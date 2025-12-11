@@ -2,7 +2,8 @@ import React from 'react';
 import AIBrief from './AIBrief';
 import ActionPanel from './ActionPanel';
 import WhatIfSimulator from './WhatIfSimulator';
-import QAPanel from './QAPanel'; // ADD THIS IMPORT
+import QAPanel from './QAPanel';
+import CommunicationTimeline from './CommunicationTimeline';
 
 export default function RenewalDetail({ item, brief, computeScore }) {
   if (!item) {
