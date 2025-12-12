@@ -74,7 +74,7 @@ export const computeScore = (item) => {
   // The final score will be between 0 and 1, as it's a weighted sum of normalized values.
   // The original code had a clamping to 10-99, but based on the Python analysis,
   // the score is expected to be in the 0-1 range.
-  const value = weightedScore;
+  const value = weightedScore*100;
 
   return {
     value,

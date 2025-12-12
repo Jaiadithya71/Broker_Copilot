@@ -109,6 +109,12 @@ class DataOrchestrator {
       const dealName = deal.properties?.dealname || 'Unknown Deal';
       const amount = parseFloat(deal.properties?.amount || 0);
       const closeDate = deal.properties?.closedate || this.generateFutureDate(30 + index * 15);
+
+      // ⭐ EXTRACT ALL SCORING PROPERTIES
+      const coveragePremium = parseFloat(deal.properties?.coverage_premium || 0);
+      const commissionAmount = parseFloat(deal.properties?.commission_amount || 0);
+      const policyLimit = parseFloat(deal.properties?.policy_limit || 0);
+      const commissionPercent = parseFloat(deal.properties?.commission_percent || 0);
       const primaryContact = deal.primaryContact;
 
       // === EMAIL MATCHING ===
@@ -141,6 +147,10 @@ class DataOrchestrator {
         productLine: this.inferProductLine(dealName),
         carrier: this.inferCarrier(dealName),
         premium: Math.round(amount),
+        coveragePremium: Math.round(coveragePremium),
+        commissionAmount: Math.round(commissionAmount),
+        policyLimit: Math.round(policyLimit),
+        commissionPercent: commissionPercent,
         expiryDate: closeDate,
         status: this.mapDealStage(deal.properties?.dealstage),
         

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useRenewals } from './hooks/useRenewals';
-import { computeScore } from './utils/scoreCalculator';
+import { computeScore } from './utils/scoreCalculator'; // Keep for potential client-side recalculations
 
 import Header from './components/Header';
 import ConnectorStatusBar from './components/ConnectorStatusBar';

@@ -45,7 +45,7 @@ export class HubSpotConnector {
   }
 
   /**
-   * Fetch deals WITH associated contacts (enriched)
+   * Fetch deals WITH associated contacts (enriched) + ALL SCORING PROPERTIES
    */
   async fetchDealsWithContacts() {
     if (!HUBSPOT_ACCESS_TOKEN) throw new Error('Not configured');
@@ -53,13 +53,26 @@ export class HubSpotConnector {
     try {
       console.log('📦 [HubSpot] Fetching deals with contact associations...');
       
-      // Step 1: Fetch deals with associations
+      // Step 1: Fetch deals with ALL required properties for scoring
       const dealsResponse = await axios.get(`${API_BASE}/crm/v3/objects/deals`, {
         headers: { 'Authorization': `Bearer ${HUBSPOT_ACCESS_TOKEN}` },
         params: {
           limit: 100,
-          properties: 'dealname,amount,closedate,dealstage,pipeline,hs_object_id',
-          associations: 'contacts' // Request contact associations
+          properties: [
+            // Basic deal properties
+            'dealname',
+            'amount',
+            'closedate',
+            'dealstage',
+            'pipeline',
+            'hs_object_id',
+            // ⭐ SCORING PROPERTIES - ADD THESE
+            'coverage_premium',      // Column G in your sheet
+            'commission_amount',     // Column H in your sheet  
+            'policy_limit',          // Column I in your sheet
+            'commission_percent'     // Column J in your sheet
+          ].join(','),
+          associations: 'contacts'
         }
       });
 
@@ -127,7 +140,7 @@ export class HubSpotConnector {
         headers: { 'Authorization': `Bearer ${HUBSPOT_ACCESS_TOKEN}` },
         params: {
           limit: 100,
-          properties: 'dealname,amount,closedate,dealstage,pipeline,hs_object_id'
+          properties: 'dealname,amount,closedate,dealstage,pipeline,hs_object_id,coverage_premium,commission_amount,policy_limit,commission_percent'
         }
       });
 

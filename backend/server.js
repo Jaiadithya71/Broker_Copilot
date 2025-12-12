@@ -9,6 +9,7 @@ import { dataOrchestrator } from "./src/services/dataOrchestrator.js";
 import { aiService } from "./src/services/aiService.js";
 import { hubspotConnector } from "./src/connectors/hubspot.js";
 import { googleConnector } from "./src/connectors/google.js";
+import { computeScore, withScores, logItemStructure } from "./src/utils/scoreCalculator.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,47 +20,19 @@ app.use(express.json());
 // OAuth routes
 app.use("/auth", authRoutes);
 
-// ---------------- SCORE HELPERS ----------------
-function computeScore(item) {
-  const now = new Date();
-  const exp = new Date(item.expiryDate);
-  const days = Math.max(
-    1,
-    Math.round((exp - now) / (1000 * 60 * 60 * 24))
-  );
-
-  const timeScore = Math.max(0, 100 - days);
-  const premiumScore = Math.min(40, Math.round(item.premium / 100000));
-  const touchpointScore = Math.min(
-    20,
-    (item.recentTouchpoints || 0) * 4
-  );
-
-  const raw = timeScore + premiumScore + touchpointScore;
-  const bounded = Math.max(10, Math.min(99, raw));
-
-  return {
-    value: bounded,
-    breakdown: { timeScore, premiumScore, touchpointScore, daysToExpiry: days },
-  };
-}
-
-function withScores(list) {
-  return list
-    .map((i) => ({
-      ...i,
-      priorityScore: computeScore(i).value,
-      _scoreBreakdown: computeScore(i).breakdown,
-    }))
-    .sort((a, b) => b.priorityScore - a.priorityScore);
-}
-
 // ---------------- ENDPOINTS ----------------
 
 // Get renewals
 app.get("/api/renewals", (req, res) => {
   const synced = dataOrchestrator.getRenewals();
   const renewals = synced.length ? synced : sampleRenewals;
+  
+  // 🔍 LOG FIRST ITEM STRUCTURE FOR DEBUGGING
+  if (renewals.length > 0) {
+    console.log('\n📊 LOGGING FIRST RENEWAL ITEM FOR COLUMN MAPPING:');
+    logItemStructure(renewals[0]);
+  }
+  
   res.json({
     items: withScores(renewals),
     synced: synced.length > 0,
@@ -128,6 +101,14 @@ app.get("/api/connectors", async (req, res) => {
 app.post("/api/sync", async (req, res) => {
   try {
     const result = await dataOrchestrator.syncAllData();
+    
+    // 🔍 LOG FIRST SYNCED ITEM STRUCTURE
+    const synced = dataOrchestrator.getRenewals();
+    if (synced.length > 0) {
+      console.log('\n📊 LOGGING FIRST SYNCED ITEM AFTER SYNC:');
+      logItemStructure(synced[0]);
+    }
+    
     res.json(result);
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

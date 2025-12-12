@@ -14,7 +14,7 @@ export const useRenewals = () => {
   const loadRenewals = async () => {
     try {
       const r = await axios.get('/api/renewals');
-      setItems(r.data.items || []);
+      setItems(r.data.items || []); // Items already have scores from backend
       setDataSource(r.data.source || 'sample');
       if (r.data.items?.length) setSelected(r.data.items[0]);
     } catch (e) {

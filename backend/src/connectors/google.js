@@ -1,43 +1,6 @@
-// backend/src/connectors/google.js
 import { google } from 'googleapis';
 import { googleConfig } from '../config/oauth.js';
 import { tokenStore } from '../utils/tokenStore.js';
-
-/**
- * Utility: extract valid email addresses from a string
- * Accepts forms like:
- *  - "John Doe <john@example.com>"
- *  - "john@example.com"
- *  - "john@example.com, jane@example.org"
- */
-function extractEmailAddresses(input) {
-  if (!input || typeof input !== 'string') return [];
-  // simple RFC-lite regex to capture emails
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-  const matches = input.match(emailRegex);
-  return matches ? matches.map(e => e.trim().toLowerCase()) : [];
-}
-
-/**
- * Build a minimal MIME message with safe headers
- * Uses CRLF (\r\n) line endings (required by Gmail)
- */
-function buildRawMessage({ toList, subject, body, from }) {
-  const headers = [];
-  if (from) headers.push(`From: ${from}`);
-  headers.push(`To: ${toList.join(', ')}`);
-  headers.push(`Subject: ${subject}`);
-  headers.push('MIME-Version: 1.0');
-  headers.push('Content-Type: text/plain; charset="UTF-8"');
-  // blank line then body
-  const mime = headers.join('\r\n') + '\r\n\r\n' + (body || '');
-  // base64url encode
-  return Buffer.from(mime, 'utf8')
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
 
 export class GoogleConnector {
   constructor() {
@@ -46,52 +9,31 @@ export class GoogleConnector {
       googleConfig.clientSecret,
       googleConfig.redirectUri
     );
-
-    // If tokenStore already has tokens, set them
-    const token = tokenStore.getGoogleToken();
-    if (token) {
-      this.oauth2Client.setCredentials(token);
-    }
-
-    // Persist refreshed tokens automatically
-    this.oauth2Client.on && this.oauth2Client.on('tokens', (tokens) => {
-      // tokens might contain access_token and refresh_token (occasionally)
-      const current = tokenStore.getGoogleToken() || {};
-      const merged = { ...current, ...tokens };
-      tokenStore.setGoogleToken(merged);
-      console.log('🔁 [Google] Tokens refreshed and saved to tokenStore');
-    });
   }
 
   getAuthUrl() {
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: googleConfig.scopes,
-      prompt: 'consent' // ensures refresh_token on first consent
+      prompt: 'consent'
     });
   }
 
   async exchangeCodeForToken(code) {
     try {
       const { tokens } = await this.oauth2Client.getToken(code);
-      // Ensure tokens contain refresh_token if offered
       this.oauth2Client.setCredentials(tokens);
       tokenStore.setGoogleToken(tokens);
       return { success: true, data: tokens };
     } catch (error) {
-      console.error('Google token exchange error:', error?.message || error);
-      return { success: false, error: error?.message || String(error) };
+      console.error('Google token exchange error:', error.message);
+      return { success: false, error: error.message };
     }
   }
 
-  /**
-   * Ensure we have a valid authenticated OAuth2 client.
-   * If access token expired, the library will auto-refresh (if refresh_token exists).
-   * We re-load saved tokens each call to be resilient across restarts.
-   */
   getAuthenticatedClient() {
     const token = tokenStore.getGoogleToken();
-    if (!token) throw new Error('Not authenticated (no token). Please connect Google.');
+    if (!token) throw new Error('Not authenticated');
     this.oauth2Client.setCredentials(token);
     return this.oauth2Client;
   }
@@ -100,64 +42,199 @@ export class GoogleConnector {
     try {
       const auth = this.getAuthenticatedClient();
       const gmail = google.gmail({ version: 'v1', auth });
-      const response = await gmail.users.messages.list({ userId: 'me', maxResults: 1 });
-      return { success: true, message: 'Google connection working!', sampleData: response.data };
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: 1
+      });
+      return { 
+        success: true, 
+        message: 'Google connection working!',
+        sampleData: response.data 
+      };
     } catch (error) {
-      return { success: false, error: error?.message || String(error) };
+      return { success: false, error: error.message };
     }
   }
 
-  // --- improved sendEmail with validation, token refresh persistence and clearer errors ---
-  async sendEmail(to, subject, body) {
-    // Accept array or string
+  /**
+   * Fetch emails with FULL metadata (enriched for matching)
+   */
+  async fetchEmailsEnriched(maxResults = 50) {
     try {
-      if (!to) throw new Error('Missing "to" field');
-      const toRaw = Array.isArray(to) ? to.join(',') : String(to);
+      const auth = this.getAuthenticatedClient();
+      const gmail = google.gmail({ version: 'v1', auth });
+      
+      console.log('📧 [Google] Fetching emails with full metadata...');
+      
+      // Fetch recent emails (broader query)
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: maxResults,
+        q: 'after:2024/01/01' // Get emails from this year
+      });
 
-      // Extract valid email addresses
-      const addresses = extractEmailAddresses(toRaw);
-      if (!addresses.length) {
-        throw new Error(`No valid recipient email addresses found in "${toRaw}"`);
+      const messages = response.data.messages || [];
+      console.log(`📧 [Google] Found ${messages.length} messages`);
+      
+      if (messages.length === 0) {
+        return [];
       }
 
-      // Build raw email (From header optional; Gmail will set 'me' as the sender)
-      // If you want to include a specific From display, set from to the connected user's email
-      const from = undefined; // or: tokenStore.getGoogleUserEmail() if you store it
-      const raw = buildRawMessage({ toList: addresses, subject: subject || '', body: body || '', from });
+      // Fetch full details for each message (in batches to avoid rate limits)
+      const enrichedEmails = [];
+      
+      for (const message of messages) {
+        try {
+          const detail = await gmail.users.messages.get({
+            userId: 'me',
+            id: message.id,
+            format: 'metadata',
+            metadataHeaders: ['From', 'To', 'Subject', 'Date']
+          });
 
-      // Send using Gmail API
+          const headers = detail.data.payload?.headers || [];
+          const from = headers.find(h => h.name === 'From')?.value || '';
+          const to = headers.find(h => h.name === 'To')?.value || '';
+          const subject = headers.find(h => h.name === 'Subject')?.value || '';
+          const dateStr = headers.find(h => h.name === 'Date')?.value || '';
+
+          // Extract email address and domain
+          const fromEmailMatch = from.match(/[\w.-]+@[\w.-]+\.\w+/);
+          const fromEmail = fromEmailMatch ? fromEmailMatch[0].toLowerCase() : '';
+          const domainMatch = fromEmail.match(/@([\w.-]+)/);
+          const domain = domainMatch ? domainMatch[1].toLowerCase() : '';
+
+          enrichedEmails.push({
+            id: message.id,
+            threadId: detail.data.threadId,
+            from: from,
+            fromEmail: fromEmail,
+            domain: domain,
+            to: to,
+            subject: subject,
+            date: dateStr,
+            timestamp: detail.data.internalDate,
+            snippet: detail.data.snippet || ''
+          });
+
+        } catch (err) {
+          console.warn(`⚠️ Failed to fetch message ${message.id}:`, err.message);
+        }
+      }
+
+      console.log(`✅ [Google] Enriched ${enrichedEmails.length} emails with full metadata`);
+      return enrichedEmails;
+
+    } catch (error) {
+      console.error('❌ [Google] Fetch emails error:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch calendar events (for meeting history)
+   */
+  async fetchCalendarEvents(daysBack = 90) {
+    try {
+      const auth = this.getAuthenticatedClient();
+      const calendar = google.calendar({ version: 'v3', auth });
+
+      const timeMin = new Date();
+      timeMin.setDate(timeMin.getDate() - daysBack);
+
+      console.log('📅 [Google] Fetching calendar events...');
+
+      const response = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin: timeMin.toISOString(),
+        maxResults: 100,
+        singleEvents: true,
+        orderBy: 'startTime'
+      });
+
+      const events = response.data.items || [];
+      console.log(`✅ [Google] Found ${events.length} calendar events`);
+
+      return events.map(event => ({
+        id: event.id,
+        summary: event.summary || '',
+        description: event.description || '',
+        start: event.start?.dateTime || event.start?.date,
+        end: event.end?.dateTime || event.end?.date,
+        attendees: event.attendees?.map(a => a.email) || [],
+        organizer: event.organizer?.email || ''
+      }));
+
+    } catch (error) {
+      console.error('❌ [Google] Fetch calendar error:', error.message);
+      // Don't throw - calendar is optional
+      return [];
+    }
+  }
+
+  /**
+   * Legacy method (kept for compatibility)
+   */
+  async fetchEmails(maxResults = 10) {
+    try {
+      const auth = this.getAuthenticatedClient();
+      const gmail = google.gmail({ version: 'v1', auth });
+      
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: maxResults,
+        q: 'subject:(renewal OR policy OR insurance)'
+      });
+
+      const messages = response.data.messages || [];
+      const emailDetails = [];
+
+      for (const message of messages.slice(0, 5)) {
+        const detail = await gmail.users.messages.get({
+          userId: 'me',
+          id: message.id,
+          format: 'metadata',
+          metadataHeaders: ['From', 'Subject', 'Date']
+        });
+        emailDetails.push(detail.data);
+      }
+
+      return emailDetails;
+    } catch (error) {
+      console.error('Google fetch emails error:', error.message);
+      throw error;
+    }
+  }
+
+  async sendEmail(to, subject, body) {
+    try {
       const auth = this.getAuthenticatedClient();
       const gmail = google.gmail({ version: 'v1', auth });
 
-      try {
-        const response = await gmail.users.messages.send({
-          userId: 'me',
-          requestBody: { raw }
-        });
-        return { success: true, messageId: response.data.id };
-      } catch (err) {
-        // If we get an auth error and refresh_token exists, try refreshing once
-        const status = err?.response?.status;
-        const data = err?.response?.data;
-        console.error('Google send error details:', status, data);
+      const email = [
+        `To: ${to}`,
+        `Subject: ${subject}`,
+        '',
+        body
+      ].join('\n');
 
-        // If invalid argument (like header), bubble up clear message
-        if (status === 400 && data?.error?.errors?.[0]?.message) {
-          throw new Error(data.error.errors[0].message);
-        }
+      const encodedEmail = Buffer.from(email)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
 
-        // For other errors, rethrow
-        throw err;
-      }
+      const response = await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: { raw: encodedEmail }
+      });
+
+      return { success: true, messageId: response.data.id };
     } catch (error) {
-      // Normalize error message
-      const msg = error?.message || String(error);
-      console.error('❌ [Google] sendEmail failed:', msg);
-      throw new Error(msg);
+      console.error('Google send email error:', error.message);
+      throw error;
     }
   }
-
-  // Keep other helpers (fetchEmailsEnriched, fetchCalendarEvents...) unchanged or copy from original if needed
 }
 
 export const googleConnector = new GoogleConnector();
