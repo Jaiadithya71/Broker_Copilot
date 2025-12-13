@@ -3,6 +3,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import authRoutes from "./src/routes/auth.js";
+import debugRoutes from './src/routes/debug.js';
 import { renewals as sampleRenewals } from "./scripts/sampleData.js";
 import { tokenStore } from "./src/utils/tokenStore.js";
 import { dataOrchestrator } from "./src/services/dataOrchestrator.js";
@@ -20,19 +21,24 @@ app.use(express.json());
 // OAuth routes
 app.use("/auth", authRoutes);
 
+// Debug routes (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/debug', debugRoutes);
+}
+
 // ---------------- ENDPOINTS ----------------
 
 // Get renewals
 app.get("/api/renewals", (req, res) => {
   const synced = dataOrchestrator.getRenewals();
   const renewals = synced.length ? synced : sampleRenewals;
-  
+
   // 🔍 LOG FIRST ITEM STRUCTURE FOR DEBUGGING
   if (renewals.length > 0) {
     console.log('\n📊 LOGGING FIRST RENEWAL ITEM FOR COLUMN MAPPING:');
     logItemStructure(renewals[0]);
   }
-  
+
   res.json({
     items: withScores(renewals),
     synced: synced.length > 0,
@@ -77,7 +83,7 @@ app.get("/api/connectors", async (req, res) => {
   try {
     const test = await hubspotConnector.testConnection();
     hubspotStatus = test.success ? "connected" : "disconnected";
-  } catch {}
+  } catch { }
 
   res.json({
     connectors: [
@@ -101,14 +107,14 @@ app.get("/api/connectors", async (req, res) => {
 app.post("/api/sync", async (req, res) => {
   try {
     const result = await dataOrchestrator.syncAllData();
-    
+
     // 🔍 LOG FIRST SYNCED ITEM STRUCTURE
     const synced = dataOrchestrator.getRenewals();
     if (synced.length > 0) {
       console.log('\n📊 LOGGING FIRST SYNCED ITEM AFTER SYNC:');
       logItemStructure(synced[0]);
     }
-    
+
     res.json(result);
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
