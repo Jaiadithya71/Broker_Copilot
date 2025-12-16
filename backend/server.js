@@ -151,9 +151,9 @@ app.post("/api/qa", async (req, res) => {
   }
 });
 
-// ---------------- SEND EMAIL ----------------
+// ---------------- SEND EMAIL (Updated to support HTML) ----------------
 app.post("/api/send-email", async (req, res) => {
-  const { to, subject, body, renewalId } = req.body;
+  const { to, subject, body, htmlBody, renewalId } = req.body;
 
   if (!to || !subject || !body) {
     return res.status(400).json({
@@ -171,12 +171,14 @@ app.post("/api/send-email", async (req, res) => {
   }
 
   try {
-    const result = await googleConnector.sendEmail(to, subject, body);
+    // Send with both plain text and HTML to prevent line wrap issues
+    const result = await googleConnector.sendEmail(to, subject, body, htmlBody);
 
     console.log("📧 Email sent:", {
       to,
       subject,
       messageId: result.messageId,
+      hasHtml: !!htmlBody,
       renewalId,
     });
 

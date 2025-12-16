@@ -5,7 +5,7 @@ import { tokenStore } from "../utils/tokenStore.js";
 /**
  * Google Connector for Gmail + Calendar
  * Fully supports:
- * - Email send
+ * - Email send (HTML and plain text)
  * - Email fetch (metadata)
  * - Calendar fetch
  * - Auto token refresh
@@ -80,21 +80,45 @@ export class GoogleConnector {
   }
 
   // ===========================================================
-  // ✉️ SEND EMAIL (Base64URL compliant)
+  // ✉️ SEND EMAIL (HTML + Plain Text multipart)
   // ===========================================================
-  async sendEmail(to, subject, body) {
+  async sendEmail(to, subject, body, htmlBody = null) {
     try {
       const auth = await this.getAuthenticatedClient();
       const gmail = google.gmail({ version: "v1", auth });
 
-      const email = [
+      // Create multipart MIME message with both HTML and plain text
+      const boundary = "boundary_" + Math.random().toString(36).substring(2);
+      
+      const messageParts = [
         `To: ${to}`,
         `Subject: ${subject}`,
-        "Content-Type: text/plain; charset=\"UTF-8\"",
         "MIME-Version: 1.0",
+        `Content-Type: multipart/alternative; boundary="${boundary}"`,
+        "",
+        `--${boundary}`,
+        "Content-Type: text/plain; charset=UTF-8",
+        "Content-Transfer-Encoding: 7bit",
         "",
         body,
-      ].join("\n");
+        "",
+      ];
+
+      // Add HTML part if provided
+      if (htmlBody) {
+        messageParts.push(
+          `--${boundary}`,
+          "Content-Type: text/html; charset=UTF-8",
+          "Content-Transfer-Encoding: 7bit",
+          "",
+          htmlBody,
+          ""
+        );
+      }
+
+      messageParts.push(`--${boundary}--`);
+
+      const email = messageParts.join("\n");
 
       const encoded = Buffer.from(email)
         .toString("base64")
@@ -105,6 +129,13 @@ export class GoogleConnector {
       const response = await gmail.users.messages.send({
         userId: "me",
         requestBody: { raw: encoded },
+      });
+
+      console.log("✅ Email sent successfully:", {
+        messageId: response.data.id,
+        to,
+        subject,
+        hasHtml: !!htmlBody
       });
 
       return { messageId: response.data.id };

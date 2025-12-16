@@ -1,34 +1,17 @@
-// frontend/src/components/ActionPanel.jsx - UPDATED with Send Email
-import React, { useState } from 'react';
+// frontend/src/components/ActionPanel.jsx - Enhanced with Editable Templates
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function ActionPanel({ brief, item }) {
   const [sending, setSending] = useState(false);
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [editableSubject, setEditableSubject] = useState('');
+  const [editableBody, setEditableBody] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
 
-  const copyTemplate = () => {
-    navigator.clipboard.writeText(brief.outreachTemplate || '');
-    alert('✅ Outreach email copied to clipboard!');
-  };
-
-  const printBrief = () => {
-    const win = window.open();
-    win.document.write('<pre>' + JSON.stringify({ item: brief }, null, 2) + '</pre>');
-    win.print();
-  };
-
-  const sendEmail = async () => {
-    if (!brief?.outreachTemplate || !item) return;
-
-    const recipient = prompt(
-      `Send renewal email to ${item.primaryContactName}?\n\nEnter email address:`,
-      `${item.primaryContactName.toLowerCase()}@${item.clientName.toLowerCase().replace(/\s+/g, '')}.com`
-    );
-
-    if (!recipient) return;
-
-    setSending(true);
-    try {
-      // Ensure outreachTemplate is a string
+  // Update editable content when brief changes
+  useEffect(() => {
+    if (brief?.outreachTemplate && item) {
       const template = typeof brief.outreachTemplate === 'string' 
         ? brief.outreachTemplate 
         : JSON.stringify(brief.outreachTemplate);
@@ -42,15 +25,63 @@ export default function ActionPanel({ brief, item }) {
       // Remove subject line from body
       const body = template.replace(/Subject:.*?\n\n?/, '');
 
+      setEditableSubject(subject);
+      setEditableBody(body);
+
+      // Set default recipient
+      if (item.primaryContact?.email) {
+        setRecipientEmail(item.primaryContact.email);
+      } else {
+        setRecipientEmail(`${item.primaryContactName?.toLowerCase()}@${item.clientName.toLowerCase().replace(/\s+/g, '')}.com`);
+      }
+    }
+  }, [brief, item]);
+
+  const copyTemplate = () => {
+    const fullTemplate = `Subject: ${editableSubject}\n\n${editableBody}`;
+    navigator.clipboard.writeText(fullTemplate);
+    alert('✅ Outreach email copied to clipboard!');
+  };
+
+  const printBrief = () => {
+    const win = window.open();
+    win.document.write('<pre>' + JSON.stringify({ item: brief }, null, 2) + '</pre>');
+    win.print();
+  };
+
+  const openEmailEditor = () => {
+    setShowEmailEditor(true);
+  };
+
+  const closeEmailEditor = () => {
+    setShowEmailEditor(false);
+  };
+
+  const sendEmail = async () => {
+    if (!editableSubject || !editableBody || !recipientEmail) {
+      alert('❌ Please fill in all fields (recipient, subject, and body)');
+      return;
+    }
+
+    setSending(true);
+    try {
+      // Convert plain text to HTML to prevent Gmail line wrapping issues
+      const htmlBody = editableBody
+        .split('\n\n')  // Split by double newlines (paragraphs)
+        .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)  // Wrap in <p> tags, single newlines become <br>
+        .join('');
+
       const response = await axios.post('/api/send-email', {
-        to: recipient,
-        subject: subject,
-        body: body,
+        to: recipientEmail,
+        subject: editableSubject,
+        body: editableBody,
+        htmlBody: htmlBody,  // Send both plain text and HTML
         renewalId: item.id
       });
 
       if (response.data.success) {
-        alert(`✅ Email sent successfully to ${recipient}!\n\nProvider: ${response.data.provider}\nMessage ID: ${response.data.messageId}`);
+        alert(`✅ Email sent successfully to ${recipientEmail}!\n\nProvider: ${response.data.provider}\nMessage ID: ${response.data.messageId}`);
+        setShowEmailEditor(false);
       } else {
         throw new Error(response.data.error || 'Failed to send');
       }
@@ -86,21 +117,21 @@ export default function ActionPanel({ brief, item }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button 
-          onClick={sendEmail} 
-          disabled={!brief || sending}
+          onClick={openEmailEditor} 
+          disabled={!brief}
           style={{
             padding: '8px 12px',
-            background: sending ? '#555' : '#2ecc71',
+            background: !brief ? '#555' : '#2ecc71',
             border: 'none',
             color: 'white',
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 'bold',
-            cursor: !brief || sending ? 'not-allowed' : 'pointer',
-            opacity: !brief || sending ? 0.6 : 1
+            cursor: !brief ? 'not-allowed' : 'pointer',
+            opacity: !brief ? 0.6 : 1
           }}
         >
-          {sending ? '📤 Sending...' : '📧 Send Outreach Email'}
+          📧 Compose & Send Email
         </button>
         
         <button 
@@ -133,6 +164,196 @@ export default function ActionPanel({ brief, item }) {
           🖨️ Print Brief
         </button>
       </div>
+
+      {/* Email Editor Modal */}
+      {showEmailEditor && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: 20
+        }}>
+          <div style={{
+            background: '#071127',
+            padding: 24,
+            borderRadius: 12,
+            width: '100%',
+            maxWidth: 700,
+            maxHeight: '90vh',
+            overflow: 'auto',
+            border: '1px solid #1e293b'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: 20 
+            }}>
+              <h3 style={{ margin: 0, color: '#e2e8f0' }}>Compose Outreach Email</h3>
+              <button 
+                onClick={closeEmailEditor}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: 24,
+                  cursor: 'pointer',
+                  padding: 0,
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: 6, 
+                fontSize: 13, 
+                color: '#94a3b8',
+                fontWeight: 600 
+              }}>
+                To:
+              </label>
+              <input
+                type="email"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="recipient@example.com"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: '#0a1628',
+                  border: '1px solid #1e293b',
+                  borderRadius: 6,
+                  color: '#e2e8f0',
+                  fontSize: 14,
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: 6, 
+                fontSize: 13, 
+                color: '#94a3b8',
+                fontWeight: 600 
+              }}>
+                Subject:
+              </label>
+              <input
+                type="text"
+                value={editableSubject}
+                onChange={(e) => setEditableSubject(e.target.value)}
+                placeholder="Email subject"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: '#0a1628',
+                  border: '1px solid #1e293b',
+                  borderRadius: 6,
+                  color: '#e2e8f0',
+                  fontSize: 14,
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: 6, 
+                fontSize: 13, 
+                color: '#94a3b8',
+                fontWeight: 600 
+              }}>
+                Message:
+              </label>
+              <textarea
+                value={editableBody}
+                onChange={(e) => setEditableBody(e.target.value)}
+                placeholder="Email body"
+                rows={12}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: '#0a1628',
+                  border: '1px solid #1e293b',
+                  borderRadius: 6,
+                  color: '#e2e8f0',
+                  fontSize: 14,
+                  fontFamily: 'inherit',
+                  lineHeight: 1.6,
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              gap: 12, 
+              justifyContent: 'flex-end' 
+            }}>
+              <button
+                onClick={closeEmailEditor}
+                style={{
+                  padding: '10px 20px',
+                  background: '#334155',
+                  border: 'none',
+                  color: '#e2e8f0',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendEmail}
+                disabled={sending}
+                style={{
+                  padding: '10px 24px',
+                  background: sending ? '#555' : '#2ecc71',
+                  border: 'none',
+                  color: 'white',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  fontWeight: 'bold',
+                  cursor: sending ? 'not-allowed' : 'pointer',
+                  opacity: sending ? 0.6 : 1
+                }}
+              >
+                {sending ? '📤 Sending...' : '📧 Send Email'}
+              </button>
+            </div>
+
+            {/* AI-generated notice */}
+            {brief?._aiGenerated && (
+              <div style={{
+                marginTop: 16,
+                padding: 10,
+                background: 'rgba(52, 152, 219, 0.1)',
+                border: '1px solid rgba(52, 152, 219, 0.3)',
+                borderRadius: 6,
+                fontSize: 12,
+                color: '#60a5fa',
+                textAlign: 'center'
+              }}>
+                ✨ This email was AI-generated. Review and edit as needed before sending.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
