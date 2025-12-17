@@ -11,7 +11,7 @@ import { aiService } from "./src/services/aiService.js";
 import { hubspotConnector } from "./src/connectors/hubspot.js";
 import { googleConnector } from "./src/connectors/google.js";
 import { computeScore, withScores, logItemStructure } from "./src/utils/scoreCalculator.js";
-import { processRenewalsAndUpdateCalendar } from "./scripts/renewals-processor.js";
+import calendarSyncRoutes from "./src/routes/calendarSync.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -21,6 +21,7 @@ app.use(express.json());
 
 // OAuth routes
 app.use("/auth", authRoutes);
+app.use("/api/calendar-sync", calendarSyncRoutes);
 
 // Debug routes (development only)
 if (process.env.NODE_ENV !== 'production') {
@@ -221,22 +222,3 @@ app.listen(PORT, () => {
   console.log(`🔗 Google OAuth: http://localhost:${PORT}/auth/google`);
 });
 
-/*
-app.listen(PORT, async () => {  // Make async
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔗 Google OAuth: http://localhost:${PORT}/auth/google`);
-  
-  // Run processor on startup (once authenticated)
-  try {
-    if (tokenStore.isGoogleConnected()) {
-      await processRenewalsAndUpdateCalendar();
-      console.log('📅 Calendar populated!');
-    } else {
-      console.log('⚠️ Google not connected. Authenticate first, then restart.');
-    }
-  }
-  catch (e) {
-    console.error('❌ Error populating calendar on startup:', e);
-  }
-});
-*/
