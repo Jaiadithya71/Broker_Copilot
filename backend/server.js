@@ -11,7 +11,6 @@ import { aiService } from "./src/services/aiService.js";
 import { hubspotConnector } from "./src/connectors/hubspot.js";
 import { googleConnector } from "./src/connectors/google.js";
 import { computeScore, withScores, logItemStructure } from "./src/utils/scoreCalculator.js";
-import calendarSyncRoutes from "./src/routes/calendarSync.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -21,7 +20,6 @@ app.use(express.json());
 
 // OAuth routes
 app.use("/auth", authRoutes);
-app.use("/api/calendar-sync", calendarSyncRoutes);
 
 // Debug routes (development only)
 if (process.env.NODE_ENV !== 'production') {
@@ -153,9 +151,9 @@ app.post("/api/qa", async (req, res) => {
   }
 });
 
-// ---------------- SEND EMAIL (Updated to support HTML) ----------------
+// ---------------- SEND EMAIL ----------------
 app.post("/api/send-email", async (req, res) => {
-  const { to, subject, body, htmlBody, renewalId } = req.body;
+  const { to, subject, body, renewalId } = req.body;
 
   if (!to || !subject || !body) {
     return res.status(400).json({
@@ -173,14 +171,12 @@ app.post("/api/send-email", async (req, res) => {
   }
 
   try {
-    // Send with both plain text and HTML to prevent line wrap issues
-    const result = await googleConnector.sendEmail(to, subject, body, htmlBody);
+    const result = await googleConnector.sendEmail(to, subject, body);
 
     console.log("📧 Email sent:", {
       to,
       subject,
       messageId: result.messageId,
-      hasHtml: !!htmlBody,
       renewalId,
     });
 
@@ -203,22 +199,8 @@ app.get("/", (req, res) => {
   });
 });
 
-app.post("/api/populate-calendar", async (req, res) => {
-  if (!tokenStore.isGoogleConnected()) {
-    return res.status(403).json({ error: "Google not connected" });
-  }
-  try {
-    await processRenewalsAndUpdateCalendar();
-    res.json({ success: true, message: "Calendar populated!" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // ---------------- START SERVER ----------------
-
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔗 Google OAuth: http://localhost:${PORT}/auth/google`);
 });
-
