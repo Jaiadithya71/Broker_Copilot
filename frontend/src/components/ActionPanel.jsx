@@ -10,8 +10,8 @@ export default function ActionPanel({ brief, item }) {
   const [editableSubject, setEditableSubject] = useState('');
   const [editableBody, setEditableBody] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
-  const [recipientMode, setRecipientMode] = useState('automatic'); // 'manual' or 'automatic'
-  const [attachBrief, setAttachBrief] = useState(true); // Attach PDF by default
+  const [recipientMode, setRecipientMode] = useState('automatic');
+  const [attachBrief, setAttachBrief] = useState(true);
 
   useEffect(() => {
     if (brief?.outreachTemplate && item) {
@@ -32,7 +32,8 @@ export default function ActionPanel({ brief, item }) {
       if (item.primaryContact?.email) {
         setRecipientEmail(item.primaryContact.email);
       } else {
-        setRecipientEmail(`${item.primaryContactName?.toLowerCase()}@${item.clientName.toLowerCase().replace(/\s+/g, '')}.com`);
+        const fallback = `${item.primaryContactName?.toLowerCase().replace(/\s+/g, '') || 'client'}@${item.clientName?.toLowerCase().replace(/\s+/g, '') || 'example'}.com`;
+        setRecipientEmail(fallback);
       }
     }
   }, [brief, item]);
@@ -40,15 +41,12 @@ export default function ActionPanel({ brief, item }) {
   const copyTemplate = () => {
     const fullTemplate = `Subject: ${editableSubject}\n\n${editableBody}`;
     navigator.clipboard.writeText(fullTemplate);
-    alert('✅ Outreach email copied to clipboard!');
+    alert('Outreach email copied to clipboard!');
   };
 
   const printBrief = () => {
-    // Direct download via window.location.href or opening in new tab
     if (!item?.id) return;
     const url = `/api/renewals/${item.id}/pdf`;
-
-    // Create a temporary link to force download
     const link = document.createElement('a');
     link.href = url;
     link.download = `${item.clientName}_brief.pdf`;
@@ -59,10 +57,9 @@ export default function ActionPanel({ brief, item }) {
 
   const sendEmail = async () => {
     if (!editableSubject || !editableBody || !recipientEmail) {
-      alert('❌ Please fill in all fields (recipient, subject, and body)');
+      alert('Please fill in all fields (recipient, subject, and body)');
       return;
     }
-
     setSending(true);
     try {
       const htmlBody = editableBody
@@ -81,399 +78,136 @@ export default function ActionPanel({ brief, item }) {
       });
 
       if (response.data.success) {
-        const attachmentMsg = response.data.attachmentCount > 0
-          ? ` with ${response.data.attachmentCount} attachment(s)`
-          : '';
-        alert(`✅ Email sent successfully to ${recipientEmail}${attachmentMsg}!`);
+        alert(`Email sent successfully to ${recipientEmail}!`);
         setShowEmailEditor(false);
-      } else {
-        throw new Error(response.data.error || 'Failed to send');
-      }
+      } else throw new Error(response.data.error);
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message;
-      const needsAuth = err.response?.data?.needsAuth;
-
-      if (needsAuth) {
-        const connect = confirm(`❌ Google not connected!\n\n${errorMsg}\n\nConnect Google now?`);
-        if (connect) {
-          window.location.href = 'http://localhost:4000/auth/google';
-        }
-      } else {
-        alert(`❌ Failed to send email: ${errorMsg}`);
-      }
+      alert(`Failed to send: ${err.message}`);
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <div style={{ width: 300 }}>
-      <h4 style={{ margin: '0 0 8px' }}>Recommended Actions</h4>
+    <div className="glass-card" style={{ padding: 16 }}>
+      <h4 style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Recommended Actions</h4>
+
       {brief?.keyActions ? (
-        <ol style={{ paddingLeft: 20, margin: '0 0 12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
           {brief.keyActions.map((a, i) => (
-            <li key={i} style={{ marginBottom: 6, fontSize: 13 }}>{a}</li>
+            <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.35 }}>
+              <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{i + 1}.</span>
+              <span>{a}</span>
+            </div>
           ))}
-        </ol>
+        </div>
       ) : (
-        <div style={{ color: '#9aa', marginBottom: 12 }}>Loading actions...</div>
+        <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginBottom: 16 }}>Formulating plan...</div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
-          onClick={() => {
-            console.log('📧 Email button clicked. Brief:', brief);
-            if (!brief) {
-              alert('⏳ AI Brief is still loading. Please wait a moment and try again.');
-              return;
-            }
-            setShowEmailEditor(true);
-          }}
-          style={{
-            padding: '8px 12px',
-            background: !brief ? '#555' : '#2ecc71',
-            border: 'none',
-            color: 'white',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            opacity: !brief ? 0.6 : 1
-          }}
+          onClick={() => brief && setShowEmailEditor(true)}
+          className="btn btn-primary"
+          style={{ width: '100%', justifyContent: 'center', height: 40 }}
+          disabled={!brief}
         >
-          {!brief ? '⏳ Loading Brief...' : '📧 Compose & Send Email'}
+          Send Outreach
         </button>
 
         <button
           onClick={() => setShowMeetingScheduler(true)}
+          className="btn btn-secondary"
+          style={{ width: '100%', justifyContent: 'center', height: 40 }}
           disabled={!item}
-          style={{
-            padding: '8px 12px',
-            background: !item ? '#555' : '#3b82f6',
-            border: 'none',
-            color: 'white',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 'bold',
-            cursor: !item ? 'not-allowed' : 'pointer',
-            opacity: !item ? 0.6 : 1
-          }}
         >
-          📅 Schedule Meeting
+          Schedule Meeting
         </button>
 
-        <button
-          onClick={copyTemplate}
-          disabled={!brief}
-          style={{
-            padding: '8px 12px',
-            background: '#3498db',
-            border: 'none',
-            color: 'white',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: !brief ? 'not-allowed' : 'pointer',
-            opacity: !brief ? 0.6 : 1
-          }}
-        >
-          📋 Copy Template
-        </button>
+        <div style={{ height: 1, background: 'var(--border-color)', margin: '2px 0' }}></div>
 
-        <button
-          onClick={printBrief}
-          disabled={!brief}
-          style={{
-            padding: '8px 12px',
-            background: '#95a5a6',
-            border: 'none',
-            color: 'white',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: !brief ? 'not-allowed' : 'pointer',
-            opacity: !brief ? 0.6 : 1
-          }}
-        >
-          🖨️ Print Brief
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={copyTemplate}
+            className="btn btn-secondary"
+            style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '8px 4px' }}
+            disabled={!brief}
+          >
+            Copy Text
+          </button>
+
+          <button
+            onClick={printBrief}
+            className="btn btn-secondary"
+            style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '8px 4px' }}
+            disabled={!brief}
+          >
+            PDF Report
+          </button>
+        </div>
       </div>
 
-      {/* Email Editor Modal */}
       {showEmailEditor && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.85)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: 20
-        }}>
-          <div style={{
-            background: '#071127',
-            padding: 24,
-            borderRadius: 12,
-            width: '100%',
-            maxWidth: 700,
-            maxHeight: '90vh',
-            overflow: 'auto',
-            border: '1px solid #1e293b'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 20
-            }}>
-              <h3 style={{ margin: 0, color: '#e2e8f0' }}>Compose Outreach Email</h3>
-              <button
-                onClick={() => setShowEmailEditor(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: 24,
-                  cursor: 'pointer',
-                  padding: 0,
-                  lineHeight: 1
-                }}
-              >
-                ×
-              </button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20, backdropFilter: 'blur(4px)' }}>
+          <div className="glass-card" style={{ padding: 24, width: '100%', maxWidth: 700, maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <h3 style={{ margin: 0 }}>Compose Outreach</h3>
+              <button onClick={() => setShowEmailEditor(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: 24, cursor: 'pointer' }}>×</button>
             </div>
 
-            {/* Recipient Mode Toggle */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                display: 'block',
-                marginBottom: 8,
-                fontSize: 13,
-                color: '#94a3b8',
-                fontWeight: 600
-              }}>
-                Recipient Mode:
-              </label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setRecipientMode('automatic')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    background: recipientMode === 'automatic' ? '#3b82f6' : '#1e293b',
-                    border: '1px solid ' + (recipientMode === 'automatic' ? '#3b82f6' : '#334155'),
-                    color: '#e2e8f0',
-                    borderRadius: 6,
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    fontWeight: recipientMode === 'automatic' ? 600 : 400
-                  }}
-                >
-                  🤖 Automatic
-                </button>
-                <button
-                  onClick={() => setRecipientMode('manual')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    background: recipientMode === 'manual' ? '#3b82f6' : '#1e293b',
-                    border: '1px solid ' + (recipientMode === 'manual' ? '#3b82f6' : '#334155'),
-                    color: '#e2e8f0',
-                    borderRadius: 6,
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    fontWeight: recipientMode === 'manual' ? 600 : 400
-                  }}
-                >
-                  ✏️ Manual
-                </button>
-              </div>
-              {recipientMode === 'automatic' && (
-                <div style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>
-                  Using: {item.primaryContact?.email || 'Generated from contact name'}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>RECIPIENT</label>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <button onClick={() => setRecipientMode('automatic')} className={`btn ${recipientMode === 'automatic' ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, fontSize: 12 }}>Auto</button>
+                  <button onClick={() => setRecipientMode('manual')} className={`btn ${recipientMode === 'manual' ? 'btn-primary' : 'btn-secondary'}`} style={{ flex: 1, fontSize: 12 }}>Manual</button>
                 </div>
-              )}
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                display: 'block',
-                marginBottom: 6,
-                fontSize: 13,
-                color: '#94a3b8',
-                fontWeight: 600
-              }}>
-                To:
-              </label>
-              <input
-                type="email"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                disabled={recipientMode === 'automatic'}
-                placeholder="recipient@example.com"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: '#0a1628',
-                  border: '1px solid #1e293b',
-                  borderRadius: 6,
-                  color: '#e2e8f0',
-                  fontSize: 14,
-                  boxSizing: 'border-box',
-                  opacity: recipientMode === 'automatic' ? 0.6 : 1,
-                  cursor: recipientMode === 'automatic' ? 'not-allowed' : 'text'
-                }}
-              />
-            </div>
-
-            {/* Attachment Checkbox */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                cursor: 'pointer',
-                padding: '10px 12px',
-                background: '#0a1628',
-                border: '1px solid #1e293b',
-                borderRadius: 6
-              }}>
                 <input
-                  type="checkbox"
-                  checked={attachBrief}
-                  onChange={(e) => setAttachBrief(e.target.checked)}
-                  style={{ cursor: 'pointer', width: 16, height: 16 }}
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  disabled={recipientMode === 'automatic'}
+                  style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)', outline: 'none' }}
                 />
-                <span style={{ fontSize: 13, color: '#e2e8f0' }}>
-                  📎 Attach AI Brief as PDF
-                </span>
-              </label>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                display: 'block',
-                marginBottom: 6,
-                fontSize: 13,
-                color: '#94a3b8',
-                fontWeight: 600
-              }}>
-                Subject:
-              </label>
-              <input
-                type="text"
-                value={editableSubject}
-                onChange={(e) => setEditableSubject(e.target.value)}
-                placeholder="Email subject"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: '#0a1628',
-                  border: '1px solid #1e293b',
-                  borderRadius: 6,
-                  color: '#e2e8f0',
-                  fontSize: 14,
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{
-                display: 'block',
-                marginBottom: 6,
-                fontSize: 13,
-                color: '#94a3b8',
-                fontWeight: 600
-              }}>
-                Message:
-              </label>
-              <textarea
-                value={editableBody}
-                onChange={(e) => setEditableBody(e.target.value)}
-                placeholder="Email body"
-                rows={12}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  background: '#0a1628',
-                  border: '1px solid #1e293b',
-                  borderRadius: 6,
-                  color: '#e2e8f0',
-                  fontSize: 14,
-                  fontFamily: 'inherit',
-                  lineHeight: 1.6,
-                  resize: 'vertical',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: 12,
-              justifyContent: 'flex-end'
-            }}>
-              <button
-                onClick={() => setShowEmailEditor(false)}
-                style={{
-                  padding: '10px 20px',
-                  background: '#334155',
-                  border: 'none',
-                  color: '#e2e8f0',
-                  borderRadius: 6,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={sendEmail}
-                disabled={sending}
-                style={{
-                  padding: '10px 24px',
-                  background: sending ? '#555' : '#2ecc71',
-                  border: 'none',
-                  color: 'white',
-                  borderRadius: 6,
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  cursor: sending ? 'not-allowed' : 'pointer',
-                  opacity: sending ? 0.6 : 1
-                }}
-              >
-                {sending ? '📤 Sending...' : '📧 Send Email'}
-              </button>
-            </div>
-
-            {brief?._aiGenerated && (
-              <div style={{
-                marginTop: 16,
-                padding: 10,
-                background: 'rgba(52, 152, 219, 0.1)',
-                border: '1px solid rgba(52, 152, 219, 0.3)',
-                borderRadius: 6,
-                fontSize: 12,
-                color: '#60a5fa',
-                textAlign: 'center'
-              }}>
-                ✨ This email was AI-generated. Review and edit as needed before sending.
               </div>
-            )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: 8 }}>
+                <input type="checkbox" checked={attachBrief} onChange={(e) => setAttachBrief(e.target.checked)} style={{ width: 18, height: 18 }} />
+                <span style={{ fontSize: 13 }}>Attach Analysis PDF</span>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>SUBJECT</label>
+                <input
+                  type="text"
+                  value={editableSubject}
+                  onChange={(e) => setEditableSubject(e.target.value)}
+                  style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>MESSAGE</label>
+                <textarea
+                  value={editableBody}
+                  onChange={(e) => setEditableBody(e.target.value)}
+                  rows={10}
+                  style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
+                <button onClick={() => setShowEmailEditor(false)} className="btn btn-secondary">Cancel</button>
+                <button onClick={sendEmail} disabled={sending} className="btn btn-primary">
+                  {sending ? 'Sending...' : 'Send Outreach'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Meeting Scheduler Modal */}
-      {showMeetingScheduler && (
-        <MeetingScheduler
-          item={item}
-          onClose={() => setShowMeetingScheduler(false)}
-        />
-      )}
+      {showMeetingScheduler && <MeetingScheduler item={item} onClose={() => setShowMeetingScheduler(false)} />}
     </div>
   );
 }

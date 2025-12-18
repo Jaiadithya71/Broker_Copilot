@@ -9,7 +9,6 @@ export default function QAPanel({ item }) {
 
   const handleAsk = async () => {
     if (!question.trim() || !item) return;
-    
     setLoading(true);
     try {
       const { data } = await axios.post('/api/qa', {
@@ -18,10 +17,7 @@ export default function QAPanel({ item }) {
       });
       setAnswer(data);
     } catch (err) {
-      setAnswer({ 
-        answer: 'Failed to get answer. Please try again.', 
-        confidence: 'low' 
-      });
+      setAnswer({ answer: 'Failed to get answer. Please try again.', confidence: 'low' });
     } finally {
       setLoading(false);
     }
@@ -35,124 +31,87 @@ export default function QAPanel({ item }) {
   };
 
   const getConfidenceColor = (conf) => {
-    if (conf === 'high') return '#2ecc71';
-    if (conf === 'medium') return '#f39c12';
-    return '#e74c3c';
+    if (conf === 'high') return 'var(--success)';
+    if (conf === 'medium') return 'var(--warning)';
+    return 'var(--danger)';
   };
 
   return (
-    <div style={{ 
-      marginTop: 24, 
-      padding: 16, 
-      background: '#041022', 
-      borderRadius: 8,
-      border: '1px solid #1e293b'
-    }}>
-      <h4 style={{ margin: '0 0 12px' }}>Ask Questions About This Renewal</h4>
-      
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="e.g., What's the premium amount?"
-          disabled={!item || loading}
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            background: '#0a1628',
-            border: '1px solid #1e293b',
-            color: '#e0e6ed',
-            borderRadius: 4,
-            fontSize: 13
-          }}
-        />
-        <button
-          onClick={handleAsk}
-          disabled={!item || !question.trim() || loading}
-          style={{
-            padding: '8px 16px',
-            background: loading ? '#555' : '#3498db',
-            border: 'none',
-            color: 'white',
-            borderRadius: 4,
-            fontSize: 13,
-            fontWeight: 'bold',
-            cursor: loading || !item ? 'not-allowed' : 'pointer',
-            opacity: loading || !item ? 0.6 : 1
-          }}
-        >
-          {loading ? 'Asking...' : 'Ask'}
-        </button>
-      </div>
-
-      {/* Suggested Questions */}
-      {!answer && item && (
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Try asking:</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              'What is the premium?',
-              'When does it expire?',
-              'Who is the carrier?',
-              'How many touchpoints?'
-            ].map((q, i) => (
-              <button
-                key={i}
-                onClick={() => setQuestion(q)}
-                style={{
-                  padding: '4px 8px',
-                  background: '#0a1628',
-                  border: '1px solid #1e293b',
-                  color: '#94a3b8',
-                  borderRadius: 4,
-                  fontSize: 11,
-                  cursor: 'pointer'
-                }}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Input Section */}
+      <div className="glass-card" style={{ padding: 20, background: 'rgba(255,255,255,0.01)' }}>
+        <h5 style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Ask Questions About This Renewal
+        </h5>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="e.g., What's the premium amount?"
+            disabled={!item || loading}
+            style={{
+              flex: 1,
+              padding: '12px 16px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
+              borderRadius: 8,
+              fontSize: 14,
+              outline: 'none'
+            }}
+          />
+          <button
+            onClick={handleAsk}
+            disabled={!item || !question.trim() || loading}
+            className="btn btn-primary"
+            style={{ padding: '0 24px' }}
+          >
+            {loading ? '...' : 'Ask'}
+          </button>
         </div>
-      )}
+
+        {!answer && item && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>Suggested queries:</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {['What is the premium?', 'When does it expire?', 'Who is the carrier?', 'How many touchpoints?'].map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => setQuestion(q)}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+                  onMouseLeave={(e) => e.target.style.borderColor = 'var(--border-color)'}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Answer Display */}
       {answer && (
-        <div style={{
-          marginTop: 12,
-          padding: 12,
-          background: '#0a1628',
-          borderRadius: 6,
-          border: '1px solid #1e293b'
-        }}>
-          <div style={{ 
-            fontSize: 13, 
-            color: '#cfe', 
-            lineHeight: 1.6,
-            marginBottom: 8
-          }}>
+        <div className="glass-card" style={{ padding: 20, background: 'rgba(59, 130, 246, 0.05)', borderLeft: '4px solid var(--accent-primary)' }}>
+          <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 12 }}>
             {answer.answer}
           </div>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontSize: 11,
-            color: '#64748b'
-          }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-secondary)' }}>
             <span>
-              Confidence: <span style={{ 
-                color: getConfidenceColor(answer.confidence),
-                fontWeight: 'bold'
-              }}>
-                {answer.confidence?.toUpperCase()}
-              </span>
+              Confidence: <strong style={{ color: getConfidenceColor(answer.confidence) }}>{answer.confidence?.toUpperCase()}</strong>
             </span>
-            {answer.source && (
-              <span>Source: {answer.source.system}</span>
-            )}
+            {answer.source && <span>Source: {answer.source.system}</span>}
           </div>
         </div>
       )}

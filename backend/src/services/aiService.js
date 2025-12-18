@@ -41,7 +41,7 @@ class AIService {
   // ----------------------------------------------------------
   // 1. AI-GENERATED RENEWAL BRIEF
   // ----------------------------------------------------------
-  async generateBrief(renewal, score) {
+  async generateBrief(renewal, score, brokerName = "Your Broker Team") {
     if (!this.genAI) return this.generateFallbackBrief(renewal, score);
 
     const model = this.genAI.getGenerativeModel({
@@ -64,41 +64,72 @@ class AIService {
       .join("\n") || "No recent meetings";
 
     const prompt = `
-Generate a renewal brief in JSON. Return ONLY JSON.
+Generate a renewal brief in JSON for the broker. Return ONLY JSON.
 
-CLIENT:
-${renewal.clientName}, ${renewal.policyNumber}, ${renewal.productLine}, ${renewal.carrier}
+CLIENT (Source: H1):
+Name: ${renewal.clientName} (Deal Name)
+Primary Contact: ${renewal.primaryContactName || 'Unknown'} (HubSpot Contact)
+Policy: ${renewal.policyNumber}, ${renewal.productLine}, ${renewal.carrier}
 
-FINANCIAL:
+FINANCIAL (Source: H2):
 Premium: ₹${renewal.premium}
-Expiry: ${renewal.expiryDate}
+Expiry: ${renewal.expiryDate} (Source: H3)
+
+STAFF:
+Broker/Preparer Name: ${brokerName}
 
 STATUS:
 Touchpoints: ${comms.totalTouchpoints || 0}
 Last Contact: ${lastContact} (${daysSince} days ago)
-Stage: ${renewal.status}
+Stage: ${renewal.status} (Source: H4)
 
 COMMUNICATION HISTORY:
-${recentEmailSubjects}
-${recentMeetingSummaries}
+${(comms.recentEmails || []).map((e, i) => `[E${i + 1}] Email: "${e.subject}" (${e.date})`).join("\n") || "No recent emails"}
+${(comms.recentMeetings || []).map((m, i) => `[M${i + 1}] Meeting: "${m.summary}" (${m.date})`).join("\n") || "No recent meetings"}
 
 SCORES:
 Priority: ${score.value}
 Time Score: ${score.breakdown.timeScore}
 Premium Score: ${score.breakdown.premiumScore}
 
-LOGIC RULES (Apply these if relevant):
-1. GHOSTING: If days since last contact > 14, explicitly recommend "Urgent re-engagement call".
+LOGIC RULES:
+1. GHOSTING: If days since last contact > 14, recommend "Urgent re-engagement call".
 2. MISSING FOLLOW-UP: If a meeting occurred > 2 days ago but no subsequent email, recommend "Send post-meeting summary".
-3. LOW ENGAGEMENT: If total touchpoints < 3, recommend "Increase engagement frequency".
-4. GOOD ENGAGEMENT: If touchpoints > 10 and recent contact < 7 days, recommend "Maintain current momentum".
+
+PERSONALIZED OUTREACH TEMPLATE RULES:
+- Write a warm, professional email.
+- USE THE NAMES PROVIDED.
+- SIGN THE EMAIL as "${brokerName}".
+- CRITICAL: NO PLACEHOLDERS like [Client Name].
+- Use names or generic professional terms.
+
+CITATION RULES:
+- For each item in "riskNotes", append a list of source tags at the end, e.g., "Policy expires soon (H3, E1)".
+- Use H for HubSpot, E for Email, M for Meeting.
+- Ensure the "citations" object in JSON maps these IDs to human-readable source names.
+
+CATEGORIZATION RULE:
+- Based on the communication history and policy details, infer the most accurate "Deal Type" or "Product Line".
+- If the current Product Line (${renewal.productLine}) seems generic or incorrect, suggest a more specific one.
 
 Format:
 {
   "summary": "...",
-  "riskNotes": ["..."],
+  "suggestedProductLine": "Inferred Type (e.g., Cyber Liability)",
+  "riskNotes": [
+    "Note text here (H1, E2)",
+    "Another note (H3)"
+  ],
   "keyActions": ["..."],
-  "outreachTemplate": "Subject: ...",
+  "outreachTemplate": "Subject: ...\\n\\nDear ...,\\n\\n...",
+  "citations": {
+    "H1": "HubSpot Deal Information",
+    "H2": "HubSpot Financial Records",
+    "H3": "HubSpot Expiry Date",
+    "H4": "HubSpot Deal Stage",
+    "E1": "Email: [Subject]",
+    "M1": "Meeting: [Summary]"
+  },
   "confidence": "high|medium|low"
 }
     `;

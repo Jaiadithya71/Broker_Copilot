@@ -97,10 +97,10 @@ export default function MeetingScheduler({ item, onClose }) {
       dayLabel = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     }
 
-    const timeLabel = date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+    const timeLabel = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
 
     return `${dayLabel}, ${timeLabel}`;
@@ -130,12 +130,12 @@ export default function MeetingScheduler({ item, onClose }) {
       const response = await axios.post('/auth/google/calendar/create', eventData);
 
       if (response.data.success) {
-        alert(`✅ Meeting scheduled successfully!\n\nTime: ${selectedSlot.label}\nAttendee: ${item.primaryContact?.email || 'No attendee'}\n\nView in calendar: ${response.data.htmlLink}`);
+        alert(`Meeting scheduled successfully!\n\nTime: ${selectedSlot.label}\nAttendee: ${item.primaryContact?.email || 'No attendee'}\n\nView in calendar: ${response.data.htmlLink}`);
         onClose();
       }
     } catch (error) {
       console.error('Failed to create meeting:', error);
-      alert('❌ Failed to schedule meeting: ' + (error.response?.data?.error || error.message));
+      alert('Failed to schedule meeting: ' + (error.response?.data?.error || error.message));
     } finally {
       setCreating(false);
     }
@@ -162,14 +162,14 @@ export default function MeetingScheduler({ item, onClose }) {
         overflow: 'auto',
         border: '1px solid #1e293b'
       }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 20 
+          marginBottom: 20
         }}>
-          <h3 style={{ margin: 0, color: '#e2e8f0' }}>📅 Schedule Meeting</h3>
-          <button 
+          <h3 style={{ margin: 0, color: '#e2e8f0' }}>Schedule Meeting</h3>
+          <button
             onClick={onClose}
             style={{
               background: 'transparent',
@@ -188,12 +188,12 @@ export default function MeetingScheduler({ item, onClose }) {
         {/* Meeting Details */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: 6, 
-              fontSize: 13, 
+            <label style={{
+              display: 'block',
+              marginBottom: 6,
+              fontSize: 13,
               color: '#94a3b8',
-              fontWeight: 600 
+              fontWeight: 600
             }}>
               Meeting Title
             </label>
@@ -215,12 +215,12 @@ export default function MeetingScheduler({ item, onClose }) {
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: 6, 
-              fontSize: 13, 
+            <label style={{
+              display: 'block',
+              marginBottom: 6,
+              fontSize: 13,
               color: '#94a3b8',
-              fontWeight: 600 
+              fontWeight: 600
             }}>
               Description
             </label>
@@ -245,12 +245,12 @@ export default function MeetingScheduler({ item, onClose }) {
 
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: 6, 
-                fontSize: 13, 
+              <label style={{
+                display: 'block',
+                marginBottom: 6,
+                fontSize: 13,
                 color: '#94a3b8',
-                fontWeight: 600 
+                fontWeight: 600
               }}>
                 Duration
               </label>
@@ -279,12 +279,12 @@ export default function MeetingScheduler({ item, onClose }) {
             </div>
 
             <div style={{ flex: 1 }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: 6, 
-                fontSize: 13, 
+              <label style={{
+                display: 'block',
+                marginBottom: 6,
+                fontSize: 13,
                 color: '#94a3b8',
-                fontWeight: 600 
+                fontWeight: 600
               }}>
                 Attendee
               </label>
@@ -309,12 +309,12 @@ export default function MeetingScheduler({ item, onClose }) {
 
         {/* Available Slots */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ 
-            display: 'block', 
-            marginBottom: 10, 
-            fontSize: 13, 
+          <label style={{
+            display: 'block',
+            marginBottom: 10,
+            fontSize: 13,
             color: '#94a3b8',
-            fontWeight: 600 
+            fontWeight: 600
           }}>
             Select Available Time Slot
           </label>
@@ -331,7 +331,7 @@ export default function MeetingScheduler({ item, onClose }) {
               textAlign: 'center',
               color: '#fbbf24'
             }}>
-              ⚠️ No available slots found in the next 7 days
+              No available slots found in the next 7 days
             </div>
           ) : (
             <div style={{
@@ -376,10 +376,10 @@ export default function MeetingScheduler({ item, onClose }) {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 12, 
-          justifyContent: 'flex-end' 
+        <div style={{
+          display: 'flex',
+          gap: 12,
+          justifyContent: 'flex-end'
         }}>
           <button
             onClick={onClose}
@@ -411,7 +411,7 @@ export default function MeetingScheduler({ item, onClose }) {
               opacity: (!selectedSlot || creating) ? 0.6 : 1
             }}
           >
-            {creating ? '📅 Scheduling...' : '📅 Schedule Meeting'}
+            {creating ? 'Scheduling...' : 'Schedule Meeting'}
           </button>
         </div>
       </div>

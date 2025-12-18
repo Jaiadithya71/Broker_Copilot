@@ -1,10 +1,45 @@
 import { hubspotConnector } from '../connectors/hubspot.js';
 import { googleConnector } from '../connectors/google.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class DataOrchestrator {
   constructor() {
     this.cachedRenewals = [];
     this.lastSync = null;
+    this.csvData = this.loadCSVData();
+  }
+
+  loadCSVData() {
+    try {
+      const csvPath = path.join(__dirname, '../../data/renewals.csv');
+      if (!fs.existsSync(csvPath)) {
+        console.warn('⚠️ [DataOrchestrator] renewals.csv not found for enrichment');
+        return new Map();
+      }
+      const csvText = fs.readFileSync(csvPath, 'utf-8');
+      const lines = csvText.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const map = new Map();
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const record = {};
+        headers.forEach((h, idx) => record[h] = values[idx]);
+        if (record['Placement Name']) {
+          map.set(record['Placement Name'], record);
+        }
+      }
+      console.log(`✅ [DataOrchestrator] Loaded ${map.size} records from renewals.csv`);
+      return map;
+    } catch (err) {
+      console.error('❌ [DataOrchestrator] Failed to load CSV:', err.message);
+      return new Map();
+    }
   }
 
   /**
@@ -138,20 +173,26 @@ class DataOrchestrator {
         ? new Date(Math.max(...allDates)).toISOString().split('T')[0]
         : null;
 
+      // Enrich from CSV if possible
+      const csvRecord = this.csvData.get(deal.properties?.dealname);
+
       // Build enriched renewal record
       return {
         // Basic info
         id: `R-${deal.id || (1000 + index)}`,
-        clientName: dealName,
+        companyName: csvRecord?.['Client'] || deal.associatedCompany?.name || primaryContact?.company || deal.properties?.client_name || 'Unknown Company',
+        dealName: deal.properties?.dealname || 'Unnamed Deal',
+        clientName: csvRecord?.['Client'] || deal.associatedCompany?.name || primaryContact?.company || 'Unknown Client',
         policyNumber: `POL-${deal.id || this.generateId()}`,
-        productLine: this.inferProductLine(dealName),
-        carrier: this.inferCarrier(dealName),
-        premium: Math.round(amount),
-        coveragePremium: Math.round(coveragePremium),
-        commissionAmount: Math.round(commissionAmount),
-        policyLimit: Math.round(policyLimit),
-        commissionPercent: commissionPercent,
-        expiryDate: closeDate,
+        productLine: csvRecord?.['Product Line'] || deal.properties?.product_line || 'General Insurance',
+        carrier: csvRecord?.['Carrier Group'] || deal.properties?.carrier_group || 'Unknown Carrier',
+        specialist: csvRecord?.['Placement Specialist'] || 'Unassigned',
+        premium: csvRecord ? Math.round(parseFloat(csvRecord['Total Premium'] || 0)) : Math.round(amount),
+        coveragePremium: csvRecord ? Math.round(parseFloat(csvRecord['Coverage Premium Amount'] || 0)) : Math.round(coveragePremium),
+        commissionAmount: csvRecord ? Math.round(parseFloat(csvRecord['Comission Amount'] || 0)) : Math.round(commissionAmount),
+        policyLimit: csvRecord ? Math.round(parseFloat(csvRecord['Limit'] || 0)) : Math.round(policyLimit),
+        commissionPercent: csvRecord ? parseFloat(csvRecord['Comission %'] || 0) : commissionPercent,
+        expiryDate: csvRecord ? this.formatCSVDate(csvRecord['Placement Expiry Date']) : closeDate,
         status: this.mapDealStage(deal.properties?.dealstage),
 
         // Source tracking
@@ -160,12 +201,12 @@ class DataOrchestrator {
 
         // ENRICHED: Contact information
         primaryContact: primaryContact ? {
-          name: `${primaryContact.firstName || ''} ${primaryContact.lastName || ''}`.trim() || 'Unknown',
+          name: `${primaryContact.firstName || ''} ${primaryContact.lastName || ''}`.trim() || 'Valued Client',
           email: primaryContact.email || null,
           phone: primaryContact.phone || null,
           hubspotId: primaryContact.id
         } : {
-          name: this.extractContactName(dealName),
+          name: 'Valued Client',
           email: null,
           phone: null,
           hubspotId: null
@@ -206,7 +247,7 @@ class DataOrchestrator {
         recentTouchpoints: totalTouchpoints,
         primaryContactName: primaryContact
           ? `${primaryContact.firstName || ''} ${primaryContact.lastName || ''}`.trim()
-          : this.extractContactName(dealName),
+          : 'Valued Client',
         lastEmailId: matchedEmails[0]?.id || null
       };
     });
@@ -356,6 +397,21 @@ class DataOrchestrator {
     return carriers[Math.floor(Math.random() * carriers.length)];
   }
 
+  formatCSVDate(csvDate) {
+    if (!csvDate || csvDate === '-') return null;
+    try {
+      // Handle DD/MM/YY or DD/MM/YYYY
+      if (csvDate.includes('/')) {
+        const [d, m, y] = csvDate.split('/');
+        const fullYear = y.length === 2 ? `20${y}` : y;
+        return `${fullYear}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      return csvDate; // Already ISO?
+    } catch {
+      return csvDate;
+    }
+  }
+
   mapDealStage(stage) {
     if (!stage) return 'Discovery';
     if (stage.includes('qualify')) return 'Pre-Renewal Review';
@@ -366,8 +422,7 @@ class DataOrchestrator {
   }
 
   extractContactName(dealName) {
-    const names = ['Ananya', 'Rahul', 'Meera', 'Sanjay', 'Priya', 'Vikram'];
-    return names[Math.floor(Math.random() * names.length)];
+    return 'Valued Client';
   }
 
   generateFutureDate(daysFromNow) {

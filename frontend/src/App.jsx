@@ -2,14 +2,15 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useRenewals } from './hooks/useRenewals';
-import { computeScore } from './utils/scoreCalculator'; // Keep for potential client-side recalculations
+import { computeScore } from './utils/scoreCalculator';
 
 import Header from './components/Header';
-import ConnectorStatusBar from './components/ConnectorStatusBar';
 import UpcomingEventsPanel from './components/UpcomingEventsPanel';
 import RenewalPipeline from './components/RenewalPipeline';
 import RenewalDetail from './components/RenewalDetail';
 import LoginModal from './components/LoginModal';
+import ConnectionGuard from './components/ConnectionGuard';
+import LoadingOverlay from './components/LoadingOverlay';
 
 const API_BASE = 'http://localhost:4000';
 axios.defaults.baseURL = API_BASE;
@@ -27,17 +28,18 @@ export default function App() {
     connectors,
     syncStatus,
     dataSource,
+    loading,
+    isConnected,
     reload
-  } = useRenewals();
+  } = useRenewals(broker);
 
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const { data } = await axios.post('/api/sync');
-      alert(data.success ? `Synced ${data.renewalCount} records!` : data.error);
+      await axios.post('/api/sync');
       reload();
     } catch (e) {
-      alert('Sync failed');
+      console.error('Sync failed');
     } finally {
       setSyncing(false);
     }
@@ -51,26 +53,43 @@ export default function App() {
   };
 
   return (
-    <div style={{ padding: 20, background: '#0a0e1a', minHeight: '100vh', color: '#e0e6ed' }}>
-      <Header broker={broker} onLoginClick={() => setShowLogin(true)} onSync={handleSync} syncing={syncing} />
+    <div style={{ width: '100%', maxWidth: '100vw', padding: '0 24px 40px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      <LoadingOverlay isLoading={loading} isDisconnected={!isConnected} onRetry={reload} />
 
-      <ConnectorStatusBar 
-        connectors={connectors} 
-        syncStatus={syncStatus} 
+      <Header
+        broker={broker}
+        onLoginClick={() => setShowLogin(true)}
+        onSync={handleSync}
+        syncing={syncing}
+        connectors={connectors}
+        syncStatus={syncStatus}
         dataSource={dataSource}
-        onConnectionUpdate={reload}
       />
 
-      <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
-        {/* Left sidebar with Upcoming Events and Pipeline */}
-        <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 0 }}>
-          <UpcomingEventsPanel />
-          <RenewalPipeline items={items} selected={selected} onSelect={setSelected} />
-        </div>
+      <ConnectionGuard connectors={connectors} onConnectionUpdate={reload} isConnected={isConnected}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', minWidth: 0, marginTop: 16 }}>
+          {/* Left sidebar - narrowed and sticky for persistent navigation */}
+          <aside style={{
+            width: 280,
+            display: 'flex',
+            flexDirection: 'column',
+            flexShrink: 0,
+            gap: 16,
+            position: 'sticky',
+            top: 16,
+            maxHeight: 'calc(100vh - 80px)', // Account for header and bottom padding
+            alignSelf: 'flex-start'
+          }}>
+            <UpcomingEventsPanel />
+            <RenewalPipeline items={items} selected={selected} onSelect={setSelected} onRefresh={reload} />
+          </aside>
 
-        {/* Main content area */}
-        <RenewalDetail item={selected} brief={brief} computeScore={computeScore} />
-      </div>
+          {/* Main content area - fluid to fill screen; sidebars anchored left/right */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <RenewalDetail item={selected} brief={brief} computeScore={computeScore} />
+          </div>
+        </div>
+      </ConnectionGuard>
 
       {showLogin && <LoginModal onSave={saveBroker} onClose={() => setShowLogin(false)} />}
     </div>

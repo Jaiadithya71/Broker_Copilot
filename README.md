@@ -1,34 +1,34 @@
-# Broker Copilot 🚀
+# Broker Copilot
 
 Broker Copilot is a clinical-grade, AI-driven insurance brokerage management system. It orchestrates data from **HubSpot CRM** and **Google Workspace (Gmail & Calendar)** to provide a unified, prioritized view of insurance renewals, enriched with deep communication history and AI-generated insights.
 
 ---
 
-## 🌟 Core Features
+## Core Features
 
-### 📊 Intelligent Renewal Analytics
+### Intelligent Renewal Analytics
 - **Multi-Factor Priority Scoring**: Dynamic scores (1-100) based on Time Urgency, Deal Value, Engagement Level, Deal Stage, and Contact Quality.
-- **Visual Breakdown**: Intuitive progress bars in the UI explain exactly *why* a renewal is high priority.
+- **Visual Breakdown**: Intuitive status bars explain exactly *why* a renewal is high priority.
 - **What-If Simulator**: Model different scenarios by adjusting variables (premium, days left) to see real-time priority impacts.
 
-### 🔄 Seamless Data Orchestration
+### Seamless Data Orchestration
 - **HubSpot Integration**: Real-time sync of deals and contact properties.
-- **Google Workspace Sync**: Intelligent matching of Gmail threads and Calendar events to HubSpot deals via email, domain, and keyword analysis.
-- **Incognito Persistence**: Secure AES-256 encryption for session tokens. By default, the system operates in **Incognito Mode**, wiping tokens from disk upon server shutdown for maximum security.
+- **Google Workspace Sync**: Intelligent matching of Gmail threads and Calendar events to HubSpot deals.
+- **Incognito Persistence**: Secure AES-256 encryption. System operates in **Incognito Mode**, wiping tokens from disk upon server shutdown for maximum security.
 
-### 🤖 AI-Powered Workflow
-- **One-Page Briefs**: Gemini-powered summaries of deal status, risks (e.g., "Ghosting" detection), and recommended next steps.
+### AI-Powered Workflow
+- **Professional Briefs**: Gemini-powered summaries of deal status and ghosting detection, delivered in a clean, emoji-free format.
 - **Smart Outreach**: Auto-generated email templates personalized with policy details and recent interaction context.
-- **PDF Generation**: Instantly generate professional PDF briefs to attach to client communications.
+- **PDF Generation**: Instantly generate professional PDF briefs for client reports.
 
-### 📅 Integrated Scheduling & Communication
-- **Meeting Scheduler**: Check calendar availability and suggest/book meeting slots directly from the renewal dashboard.
+### Integrated Scheduling & Connectivity
+- **Backend Connectivity Guard**: Automatic detection and recovery system that masks the UI with high-fidelity loading/offline screens if the server is unreachable.
+- **Automatic Initialization**: Background sync is automatically triggered upon login, ensuring the workspace is populated without manual intervention.
 - **Communication Timeline**: A centralized view of all emails and meetings related to a specific client.
-- **Manual/Auto Emailing**: Choose between automatic recipient detection or manual entry for flexible outreach.
 
 ---
 
-## 🛠️ Project Structure
+## Project Structure
 
 ```text
 Broker_Copilot/
@@ -39,27 +39,27 @@ Broker_Copilot/
 │   │   ├── utils/          # Score Calculator & PDF Generator
 │   │   └── routes/         # API Endpoints & OAuth
 │   ├── tests/              # Comprehensive Test Suite (15 Tests)
-│   └── data/               # Persistent Storage (Encrypted during session)
+│   └── data/               # Persistent Storage (Encrypted)
 ├── frontend/               # React (Vite) Frontend
 │   ├── src/
 │   │   ├── components/     # UI Components (Dashboard, Timeline, etc.)
-│   │   └── hooks/          # Data Fetching & State
+│   │   └── hooks/          # Data Fetching & Sync State
 └── start.ps1               # Portable Startup Script
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Prerequisites
-- **Node.js** (v18+ recommended)
-- **API Keys**: Google OAuth Client ID/Secret, HubSpot Client ID/Secret, and a Gemini API Key.
+- **Node.js** (v18+)
+- **API Keys**: Google OAuth Client, HubSpot Client, and Gemini API Key.
 
 ### 2. Environment Setup
 Create a `.env` file in the `backend/` directory:
 ```env
 PORT=4000
-ENCRYPTION_KEY=your_32_byte_hex_key  # Run 'node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+ENCRYPTION_KEY=your_key
 HUBSPOT_CLIENT_ID=...
 HUBSPOT_CLIENT_SECRET=...
 HUBSPOT_REDIRECT_URI=http://localhost:4000/auth/hubspot/callback
@@ -71,15 +71,13 @@ FRONTEND_URL=http://localhost:3000
 ```
 
 ### 3. Installation & Startup
-Use the provided PowerShell script for a one-click start:
 ```powershell
 ./start.ps1
 ```
-This will launch the Backend (Port 4000) and Frontend (Port 3000) in separate windows.
 
 ---
 
-## 🧪 Verification & Testing
+## Verification & Testing
 The system includes a robust test suite covering 100% of core business logic.
 
 **Run All Tests:**
@@ -87,20 +85,19 @@ The system includes a robust test suite covering 100% of core business logic.
 cd backend
 npm test
 ```
-*Current Coverage: 15/15 passing (Scoring, Matching, Encryption, PDF, API).*
+*Current Status: 15/15 passing (Scoring, Matching, Encryption, PDF, API).*
 
 ---
 
-## 🎓 Summary of Completion
-The Broker Copilot is now a fully functional, end-to-end solution. All key milestones have been met:
-- ✅ **Secure Auth**: Encrypted token handling with automatic cleanup (Incognito Mode).
-- ✅ **Intelligent Matching**: Email and Calendar matching logic verified.
-- ✅ **UI/UX excellence**: Responsive dashboard, detailed breakdowns, and AI-assisted workflows.
-- ✅ **Stability**: 15 integrated tests ensuring zero-regression during future updates.
+## Summary of Completion
+The Broker Copilot is a fully professionalized, end-to-end solution.
+- **Secure Auth**: Encrypted token handling with automatic cleanup.
+- **Intelligent Loading**: Unified connectivity guard with automatic Hubspot/Google synchronization.
+- **Professional UI/UX**: Clean, emoji-free interface with high-fidelity glassmorphism overlays.
+- **Stability**: Comprehensive testing ensuring zero-regression across all core modules.
 
 ---
 
-**Lead Developers**: Jai Adithya A , Kiran Soorya R S , Veeresh , Arya Chigare
+**Lead Developers**: Jai Adithya A, Kiran Soorya R S, Veeresh, Arya Chigare
 
 **Status**: 100% Completed
-

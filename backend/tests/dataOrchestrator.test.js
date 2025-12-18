@@ -103,12 +103,38 @@ describe('Data Orchestrator Matching Logic', () => {
         assert.strictEqual(matches[0].id, 'ev1');
     });
 
-    it('should infer product line from deal name', () => {
-        const p1 = dataOrchestrator.inferProductLine('Cyber Security Renewal');
-        assert.strictEqual(p1, 'Cyber Liability');
+    it('should map companyName and dealName correctly', () => {
+        const mockDeal = {
+            id: '123',
+            properties: {
+                dealname: 'SCR-12345',
+                product_line: 'Cyber Liability',
+                carrier_group: 'Eastern Risk',
+                client_name: 'Manual Company Name'
+            },
+            associatedCompany: { name: 'Associated Company Ltd' },
+            primaryContact: { company: 'Contact Company' }
+        };
 
-        const p2 = dataOrchestrator.inferProductLine('Factory Fire Policy');
-        assert.strictEqual(p2, 'General Insurance'); // Default fallthrough
+        const enriched = dataOrchestrator.matchAndEnrich([mockDeal], [], [])[0];
+
+        // Should prefer associated company name
+        assert.strictEqual(enriched.companyName, 'Associated Company Ltd');
+        assert.strictEqual(enriched.dealName, 'SCR-12345');
+        assert.strictEqual(enriched.productLine, 'Cyber Liability');
+        assert.strictEqual(enriched.carrier, 'Eastern Risk');
+    });
+
+    it('should fallback company name correctly', () => {
+        const mockDeal = {
+            id: '124',
+            properties: { dealname: 'SCR-999' },
+            associatedCompany: null,
+            primaryContact: { company: 'Contact Company' }
+        };
+
+        const enriched = dataOrchestrator.matchAndEnrich([mockDeal], [], [])[0];
+        assert.strictEqual(enriched.companyName, 'Contact Company');
     });
 
 });

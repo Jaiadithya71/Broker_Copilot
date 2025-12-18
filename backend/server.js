@@ -62,6 +62,7 @@ app.get("/api/renewals/:id", (req, res) => {
 
 // Generate AI brief
 app.get("/api/renewals/:id/brief", async (req, res) => {
+  const { brokerName } = req.query;
   const synced = dataOrchestrator.getRenewals();
   const renewals = synced.length ? synced : sampleRenewals;
 
@@ -70,7 +71,7 @@ app.get("/api/renewals/:id/brief", async (req, res) => {
 
   try {
     const scoreBreakdown = computeScore(item);
-    const brief = await aiService.generateBrief(item, scoreBreakdown);
+    const brief = await aiService.generateBrief(item, scoreBreakdown, brokerName);
     res.json({ brief });
   } catch (e) {
     console.error("Brief generation error:", e);

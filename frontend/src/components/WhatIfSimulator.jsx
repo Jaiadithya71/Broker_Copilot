@@ -81,26 +81,17 @@ export default function WhatIfSimulator({ item, compute }) {
   /* ------------------ UI ------------------ */
   return (
     <div style={{
-      background: '#041022',
-      padding: 16,
+      background: 'rgba(15, 23, 42, 0.4)',
+      padding: 12,
       borderRadius: 8,
-      border: '1px solid #1e293b'
+      border: '1px solid rgba(255, 255, 255, 0.08)'
     }}>
 
-      <div style={{
-        marginBottom: 16,
-        fontSize: 12,
-        color: '#94a3b8',
-        lineHeight: 1.6
-      }}>
-        💡 Adjust the sliders below to see how different factors affect the priority score.
-      </div>
-
       {/* Days to Expiry */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, color: '#e2e8f0' }}>
-          <span>⏰ Days Until Expiry</span>
-          <span style={{ fontWeight: 'bold' }}>{expiryDays} days</span>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
+          <span style={{ fontWeight: 600 }}>Expiry</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{expiryDays}d</span>
         </div>
         <input
           type="range"
@@ -108,15 +99,15 @@ export default function WhatIfSimulator({ item, compute }) {
           max="120"
           value={expiryDays}
           onChange={e => setExpiryDays(Number(e.target.value))}
-          style={{ width: '100%' }}
+          style={{ width: '100%', height: 4, cursor: 'pointer' }}
         />
       </div>
 
       {/* Premium */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, color: '#e2e8f0' }}>
-          <span>💰 Premium Amount</span>
-          <span style={{ fontWeight: 'bold', color: '#10b981' }}>{formatNumber(premium)}</span>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
+          <span style={{ fontWeight: 600 }}>Premium</span>
+          <span style={{ color: 'var(--success)', fontWeight: 700 }}>{formatNumber(premium)}</span>
         </div>
         <input
           type="range"
@@ -125,15 +116,15 @@ export default function WhatIfSimulator({ item, compute }) {
           step="50000"
           value={premium}
           onChange={e => setPremium(Number(e.target.value))}
-          style={{ width: '100%' }}
+          style={{ width: '100%', height: 4, cursor: 'pointer' }}
         />
       </div>
 
       {/* Touchpoints */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, color: '#e2e8f0' }}>
-          <span>💬 Communication Touchpoints</span>
-          <span style={{ fontWeight: 'bold', color: '#60a5fa' }}>{touchpoints}</span>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
+          <span style={{ fontWeight: 600 }}>Activity</span>
+          <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{touchpoints} pts</span>
         </div>
         <input
           type="range"
@@ -141,25 +132,24 @@ export default function WhatIfSimulator({ item, compute }) {
           max="20"
           value={touchpoints}
           onChange={e => setTouchpoints(Number(e.target.value))}
-          style={{ width: '100%' }}
+          style={{ width: '100%', height: 4, cursor: 'pointer' }}
         />
       </div>
 
       {/* Deal Stage */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ marginBottom: 6, fontSize: 13, color: '#e2e8f0' }}>
-          📊 Deal Stage
-        </div>
+      <div style={{ marginBottom: 12 }}>
         <select
           value={dealStage}
           onChange={e => setDealStage(e.target.value)}
           style={{
             width: '100%',
-            padding: '8px 12px',
-            background: '#0a1628',
-            border: '1px solid #1e293b',
-            borderRadius: 4,
-            color: '#e2e8f0'
+            padding: '6px 10px',
+            background: 'rgba(0, 0, 0, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 6,
+            color: 'var(--text-primary)',
+            fontSize: 12,
+            outline: 'none'
           }}
         >
           {dealStages.map(stage => (
@@ -168,30 +158,45 @@ export default function WhatIfSimulator({ item, compute }) {
         </select>
       </div>
 
-      {/* Score */}
+      {/* Compact Score Results */}
       <div style={{
-        marginTop: 20,
-        padding: 16,
-        background: '#0a1628',
-        borderRadius: 6,
-        border: '2px solid #1e293b'
+        marginTop: 16,
+        padding: '12px 16px',
+        background: 'rgba(59, 130, 246, 0.08)',
+        borderRadius: 8,
+        border: '1px solid rgba(59, 130, 246, 0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>Simulated Priority Score</div>
-          </div>
-          <div style={{ fontSize: 32, fontWeight: 'bold', color: getScoreColor(result.value) }}>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Simulated Score</div>
+          <div style={{
+            fontSize: 24,
+            fontWeight: 800,
+            color: getScoreColor(result.value),
+            lineHeight: 1,
+            marginTop: 2
+          }}>
             {result.value.toFixed(1)}
           </div>
         </div>
 
         {result.breakdown && (
-          <div style={{ marginTop: 12, fontSize: 11, color: '#64748b' }}>
-            <div>Time Urgency: {result.breakdown.timeUrgency}</div>
-            <div>Deal Value: {result.breakdown.dealValue}</div>
-            <div>Engagement: {result.breakdown.engagement}</div>
-            <div>Deal Stage: {result.breakdown.dealStage}</div>
-            <div>Contact Quality: {result.breakdown.contactQuality}</div>
+          <div style={{
+            fontSize: 9,
+            color: 'var(--text-secondary)',
+            textAlign: 'right',
+            lineHeight: 1.3,
+            opacity: 0.8
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 8px' }}>
+              <span>Urgency:</span> <span style={{ color: 'var(--text-primary)' }}>{result.breakdown.timeUrgency}</span>
+              <span>Value:</span> <span style={{ color: 'var(--text-primary)' }}>{result.breakdown.dealValue}</span>
+              <span>Engage:</span> <span style={{ color: 'var(--text-primary)' }}>{result.breakdown.engagement}</span>
+              <span>Stage:</span> <span style={{ color: 'var(--text-primary)' }}>{result.breakdown.dealStage}</span>
+              <span>Quality:</span> <span style={{ color: 'var(--text-primary)' }}>{result.breakdown.contactQuality}</span>
+            </div>
           </div>
         )}
       </div>

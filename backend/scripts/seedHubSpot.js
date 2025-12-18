@@ -17,36 +17,36 @@ const headers = {
 // Test data: Insurance renewal deals
 const testDeals = [
   {
-    dealname: 'Acme Manufacturing Insurance Renewal',
-    amount: '850000',
-    closedate: '2026-02-15',
+    dealname: 'SCR-8d9f15ee3a3c', // Global Technologies
+    amount: '67311',
+    closedate: '2025-12-30',
     dealstage: 'qualifiedtobuy',
     pipeline: 'default'
   },
   {
-    dealname: 'TechCorp Cyber Liability Policy',
-    amount: '1250000',
-    closedate: '2025-12-20',
+    dealname: 'SCR-6b2e08c3f11d', // Apex Enterprises
+    amount: '1581997',
+    closedate: '2026-03-15',
     dealstage: 'presentationscheduled',
     pipeline: 'default'
   },
   {
-    dealname: 'GreenLogistics Marine Cargo Coverage',
-    amount: '420000',
-    closedate: '2026-01-05',
+    dealname: 'SCR-6d2b42de057e', // Omega Global
+    amount: '3256',
+    closedate: '2026-06-05',
     dealstage: 'qualifiedtobuy',
     pipeline: 'default'
   },
   {
-    dealname: 'Sunrise Foods General Liability',
-    amount: '315000',
-    closedate: '2025-12-30',
+    dealname: 'SCR-d633602f4cda', // Apex Corporation
+    amount: '58035',
+    closedate: '2025-12-25',
     dealstage: 'decisionmakerboughtin',
     pipeline: 'default'
   },
   {
-    dealname: 'BlueSky Consulting Professional Indemnity',
-    amount: '680000',
+    dealname: 'SCR-16f144278c13', // Titan Solutions
+    amount: '86147',
     closedate: '2026-03-10',
     dealstage: 'qualifiedtobuy',
     pipeline: 'default'

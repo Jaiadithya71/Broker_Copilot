@@ -4,200 +4,69 @@ import React from 'react';
 
 export default function CommunicationTimeline({ item }) {
   if (!item?.communications) {
-    return <div style={{ color: '#9aa', fontSize: 13 }}>No communication history available</div>;
+    return <div style={{ color: 'var(--text-secondary)', fontSize: 13, padding: 20 }}>No communication history available</div>;
   }
 
   const { communications, primaryContact } = item;
   const { totalTouchpoints, emailCount, meetingCount, lastContactDate, recentEmails, recentMeetings } = communications;
 
-  // Calculate days since last contact
-  const daysSinceContact = lastContactDate 
+  const daysSinceContact = lastContactDate
     ? Math.floor((new Date() - new Date(lastContactDate)) / (1000 * 60 * 60 * 24))
     : null;
 
   return (
-    <div style={{ 
-      background: '#041022', 
-      padding: 16, 
-      borderRadius: 8,
-      border: '1px solid #1e293b'
-    }}>
-      {/* Header with stats */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottom: '1px solid #1e293b'
-      }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Condensed Summary Matrix */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <StatCell label="Emails" value={emailCount} color="var(--accent-primary)" />
+        <StatCell label="Meetings" value={meetingCount} color="var(--accent-secondary)" />
+        <StatCell label="Recency" value={daysSinceContact !== null ? `${daysSinceContact}d` : 'N/A'} color={daysSinceContact > 30 ? 'var(--danger)' : 'var(--success)'} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Unified Timeline Stack */}
         <div>
-          <h5 style={{ margin: '0 0 4px', fontSize: 14, color: '#e2e8f0' }}>
-            Communication History
-          </h5>
-          {primaryContact?.email && (
-            <div style={{ fontSize: 12, color: '#64748b' }}>
-              Primary: {primaryContact.name} ({primaryContact.email})
-            </div>
-          )}
-        </div>
-        
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 20, fontWeight: 'bold', color: '#3498db' }}>
-            {totalTouchpoints}
-          </div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>
-            Total Touchpoints
+          <h5 style={{ margin: '0 0 10px', fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recent Activity</h5>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {recentEmails?.slice(0, 2).map((email, i) => (
+              <TimelineItem key={`e-${i}`} title={email.subject} subtitle={email.from} date={email.date} />
+            ))}
+            {recentMeetings?.slice(0, 2).map((meeting, i) => (
+              <TimelineItem key={`m-${i}`} title={meeting.summary} subtitle="Meeting" date={new Date(meeting.date).toLocaleDateString()} />
+            ))}
+            {(!recentEmails?.length && !recentMeetings?.length) && <EmptyState text="No recent activity" />}
           </div>
         </div>
       </div>
-
-      {/* Summary stats */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(3, 1fr)', 
-        gap: 12,
-        marginBottom: 16 
-      }}>
-        <div style={{ 
-          padding: 10, 
-          background: '#0a1628', 
-          borderRadius: 6,
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: 16, fontWeight: 'bold', color: '#60a5fa' }}>
-            {emailCount}
-          </div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>Emails</div>
-        </div>
-
-        <div style={{ 
-          padding: 10, 
-          background: '#0a1628', 
-          borderRadius: 6,
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: 16, fontWeight: 'bold', color: '#a78bfa' }}>
-            {meetingCount}
-          </div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>Meetings</div>
-        </div>
-
-        <div style={{ 
-          padding: 10, 
-          background: '#0a1628', 
-          borderRadius: 6,
-          textAlign: 'center'
-        }}>
-          <div style={{ 
-            fontSize: 16, 
-            fontWeight: 'bold', 
-            color: daysSinceContact > 30 ? '#ef4444' : daysSinceContact > 14 ? '#f59e0b' : '#10b981'
-          }}>
-            {daysSinceContact !== null ? `${daysSinceContact}d` : 'N/A'}
-          </div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>Since Last Contact</div>
-        </div>
-      </div>
-
-      {/* Recent emails */}
-      {recentEmails && recentEmails.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ 
-            fontSize: 12, 
-            fontWeight: 600, 
-            color: '#94a3b8', 
-            marginBottom: 8,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}>
-            Recent Emails
-          </div>
-          {recentEmails.map((email, i) => (
-            <div 
-              key={i}
-              style={{
-                padding: '8px 10px',
-                background: '#0a1628',
-                borderRadius: 4,
-                marginBottom: 6,
-                fontSize: 12
-              }}
-            >
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                marginBottom: 2
-              }}>
-                <span style={{ color: '#cbd5e1', fontWeight: 500 }}>
-                  📧 {email.subject || 'No subject'}
-                </span>
-                <span style={{ color: '#64748b', fontSize: 11 }}>
-                  {email.date}
-                </span>
-              </div>
-              <div style={{ color: '#64748b', fontSize: 11 }}>
-                From: {email.from}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Recent meetings */}
-      {recentMeetings && recentMeetings.length > 0 && (
-        <div>
-          <div style={{ 
-            fontSize: 12, 
-            fontWeight: 600, 
-            color: '#94a3b8', 
-            marginBottom: 8,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}>
-            Recent Meetings
-          </div>
-          {recentMeetings.map((meeting, i) => (
-            <div 
-              key={i}
-              style={{
-                padding: '8px 10px',
-                background: '#0a1628',
-                borderRadius: 4,
-                marginBottom: 6,
-                fontSize: 12
-              }}
-            >
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between'
-              }}>
-                <span style={{ color: '#cbd5e1', fontWeight: 500 }}>
-                  📅 {meeting.summary || 'No title'}
-                </span>
-                <span style={{ color: '#64748b', fontSize: 11 }}>
-                  {new Date(meeting.date).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* No activity warning */}
-      {totalTouchpoints === 0 && (
-        <div style={{
-          padding: 12,
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          borderRadius: 6,
-          color: '#fca5a5',
-          fontSize: 13,
-          textAlign: 'center'
-        }}>
-          ⚠️ No communication history found. Consider reaching out soon.
-        </div>
-      )}
     </div>
   );
+}
+
+function StatCell({ label, value, color, icon }) {
+  return (
+    <div className="glass-card" style={{ padding: '8px 12px', textAlign: 'center', background: 'rgba(255,255,255,0.01)' }}>
+      <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function TimelineItem({ title, subtitle, date, icon }) {
+  return (
+    <div className="glass-card" style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.02)', fontSize: 11 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+        <div style={{ fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {title || 'Untitled'}
+        </div>
+        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginLeft: 8 }}>{date}</div>
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{subtitle}</div>
+    </div>
+  );
+}
+
+function EmptyState({ text }) {
+  return <div style={{ padding: 10, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 10, border: '1px dashed var(--border-color)', borderRadius: 8 }}>{text}</div>;
 }

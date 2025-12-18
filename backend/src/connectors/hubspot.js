@@ -70,45 +70,46 @@ export class HubSpotConnector {
         params: {
           limit: 100,
           properties: [
-            // Basic deal properties
             'dealname',
             'amount',
             'closedate',
             'dealstage',
             'pipeline',
             'hs_object_id',
-            // ⭐ SCORING PROPERTIES - ADD THESE
-            'coverage_premium',      // Column G in your sheet
-            'commission_amount',     // Column H in your sheet  
-            'policy_limit',          // Column I in your sheet
-            'commission_percent'     // Column J in your sheet
+            'coverage_premium',
+            'commission_amount',
+            'policy_limit',
+            'commission_percent',
+            'product_line',      // Real field
+            'carrier_group',      // Real field
+            'client_name'         // Backup field
           ].join(','),
-          associations: 'contacts' // Request contact associations
+          associations: 'contacts,companies' // Request company associations too
         }
       });
 
       const deals = dealsResponse.data.results || [];
       console.log(`✅ [HubSpot] Fetched ${deals.length} deals`);
 
-      // Step 2: For each deal, fetch associated contact details
+      // Step 2: For each deal, fetch associated contact/company details
       const enrichedDeals = await Promise.all(
         deals.map(async (deal) => {
           const contactIds = deal.associations?.contacts?.results?.map(c => c.id) || [];
+          const companyIds = deal.associations?.companies?.results?.map(c => c.id) || [];
 
-          // Fetch contact details if associations exist
           let primaryContact = null;
+          let associatedCompany = null;
+
+          // Fetch contact if exists
           if (contactIds.length > 0) {
             try {
               const contactResponse = await axios.get(
                 `${API_BASE}/crm/v3/objects/contacts/${contactIds[0]}`,
                 {
                   headers: { 'Authorization': `Bearer ${HUBSPOT_ACCESS_TOKEN}` },
-                  params: {
-                    properties: 'firstname,lastname,email,phone,company'
-                  }
+                  params: { properties: 'firstname,lastname,email,phone,company' }
                 }
               );
-
               const props = contactResponse.data.properties;
               primaryContact = {
                 id: contactIds[0],
@@ -123,9 +124,29 @@ export class HubSpotConnector {
             }
           }
 
+          // Fetch company if exists
+          if (companyIds.length > 0) {
+            try {
+              const companyResponse = await axios.get(
+                `${API_BASE}/crm/v3/objects/companies/${companyIds[0]}`,
+                {
+                  headers: { 'Authorization': `Bearer ${HUBSPOT_ACCESS_TOKEN}` },
+                  params: { properties: 'name,domain' }
+                }
+              );
+              associatedCompany = {
+                id: companyIds[0],
+                name: companyResponse.data.properties.name
+              };
+            } catch (err) {
+              console.warn(`⚠️ Failed to fetch company ${companyIds[0]}:`, err.message);
+            }
+          }
+
           return {
             ...deal,
-            primaryContact
+            primaryContact,
+            associatedCompany
           };
         })
       );
