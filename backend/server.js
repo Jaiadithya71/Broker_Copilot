@@ -12,7 +12,7 @@ import { aiService } from "./src/services/aiService.js";
 import { hubspotConnector } from "./src/connectors/hubspot.js";
 import { googleConnector } from "./src/connectors/google.js";
 import { computeScore, withScores, logItemStructure } from "./src/utils/scoreCalculator.js";
-import calendarSyncRoutes from "./src/routes/calendarSync.js";
+// import calendarSyncRoutes from "./src/routes/calendarSync.js"; // Commented out - missing dependency
 import { generateBriefPDF } from "./src/services/pdfGenerator.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,7 +25,7 @@ app.use(express.json());
 
 // OAuth routes
 app.use("/auth", authRoutes);
-app.use("/api/calendar-sync", calendarSyncRoutes);
+// app.use("/api/calendar-sync", calendarSyncRoutes); // Commented out - missing dependency
 
 // Debug routes (development only)
 if (process.env.NODE_ENV !== 'production') {
