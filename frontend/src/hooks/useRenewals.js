@@ -86,6 +86,8 @@ export const useRenewals = (brokerName) => {
     if (brokerName) {
       loadRenewals();
       loadConnectors();
+    } else {
+      setLoading(false); // Stop loading if no broker name so LoginModal can show
     }
   }, [brokerName, loadRenewals, loadConnectors]);
 

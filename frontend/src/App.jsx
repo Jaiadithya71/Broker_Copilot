@@ -12,8 +12,7 @@ import LoginModal from './components/LoginModal';
 import ConnectionGuard from './components/ConnectionGuard';
 import LoadingOverlay from './components/LoadingOverlay';
 
-const API_BASE = 'http://localhost:4000';
-axios.defaults.baseURL = API_BASE;
+axios.defaults.baseURL = "";
 
 export default function App() {
   const [broker, setBroker] = useState(localStorage.getItem('broker') || '');
