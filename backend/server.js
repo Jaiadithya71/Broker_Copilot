@@ -268,8 +268,8 @@ app.post("/api/populate-calendar", async (req, res) => {
 
 // ---------------- START SERVER ----------------
 
-// Only start server if run directly (not imported)
-if (process.argv[1] === import.meta.filename) {
+// Only start server if run directly (not imported) AND not on Vercel
+if (process.argv[1] === import.meta.filename && !process.env.VERCEL) {
   // Load tokens from disk on startup
   await tokenStore.loadFromDisk();
 

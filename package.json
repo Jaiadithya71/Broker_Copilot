@@ -1,0 +1,8 @@
+{
+    "name": "broker-copilot-root",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "cd frontend && npm install && npm run build && mkdir -p ../dist && cp -r dist/* ../dist/",
+        "start": "node backend/server.js"
+    }
+}
