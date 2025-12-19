@@ -2,6 +2,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { fileURLToPath } from "url";
 import authRoutes from "./src/routes/auth.js";
 import debugRoutes from './src/routes/debug.js';
 import { renewals as sampleRenewals } from "./scripts/sampleData.js";
@@ -13,6 +14,8 @@ import { googleConnector } from "./src/connectors/google.js";
 import { computeScore, withScores, logItemStructure } from "./src/utils/scoreCalculator.js";
 import calendarSyncRoutes from "./src/routes/calendarSync.js";
 import { generateBriefPDF } from "./src/services/pdfGenerator.js";
+
+const __filename = fileURLToPath(import.meta.url);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -274,7 +277,7 @@ tokenStore.loadFromDisk().catch(err => {
 });
 
 // Only start server if run directly (not imported) AND not on Vercel
-if (process.argv[1] === import.meta.filename && !process.env.VERCEL) {
+if (process.argv[1] === __filename && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🔗 Google OAuth: ${process.env.FRONTEND_URL || 'http://localhost:' + PORT}/auth/google`);
     console.log(`💾 Token persistence: ${tokenStore.getHealthStatus().encryptionEnabled ? 'ENABLED' : 'DISABLED (in-memory only)'}`);
