@@ -26,14 +26,19 @@ class TokenStore {
       google: null
     };
 
+    // Detect serverless environment (Vercel)
+    this.isServerless = !!process.env.VERCEL;
+
     // Encryption key from environment (32 bytes hex)
     this.encryptionKey = process.env.ENCRYPTION_KEY;
 
-    // Auto-generate encryption key if missing
-    if (!this.encryptionKey) {
+    // Auto-generate encryption key if missing (only in local dev)
+    if (!this.encryptionKey && !this.isServerless) {
       console.log('🔐 No ENCRYPTION_KEY found - generating new key...');
       this.encryptionKey = crypto.randomBytes(32).toString('hex');
       this.saveEncryptionKeyToEnv();
+    } else if (!this.encryptionKey && this.isServerless) {
+      console.warn('⚠️ No ENCRYPTION_KEY in serverless environment - token persistence disabled');
     }
   }
 
@@ -41,6 +46,11 @@ class TokenStore {
    * Save encryption key to .env file
    */
   saveEncryptionKeyToEnv() {
+    // Skip in serverless environments
+    if (this.isServerless) {
+      return;
+    }
+
     try {
       let envContent = '';
 
@@ -130,6 +140,12 @@ class TokenStore {
    * Load tokens from disk on server startup
    */
   async loadFromDisk() {
+    // Skip in serverless environments
+    if (this.isServerless) {
+      console.log('ℹ️ Serverless environment detected - using in-memory token storage only');
+      return;
+    }
+
     if (!this.encryptionKey) {
       console.log('ℹ️ Encryption disabled - using in-memory token storage only');
       return;
@@ -170,6 +186,11 @@ class TokenStore {
    * Save tokens to disk (encrypted)
    */
   async saveToDisk() {
+    // Skip in serverless environments
+    if (this.isServerless) {
+      return;
+    }
+
     if (!this.encryptionKey) {
       // Silently skip if encryption not configured
       return;
