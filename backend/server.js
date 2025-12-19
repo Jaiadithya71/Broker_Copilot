@@ -268,11 +268,11 @@ app.post("/api/populate-calendar", async (req, res) => {
 
 // ---------------- START SERVER ----------------
 
+// Always load tokens on startup if not in-memory (handles Vercel initialization)
+await tokenStore.loadFromDisk();
+
 // Only start server if run directly (not imported) AND not on Vercel
 if (process.argv[1] === import.meta.filename && !process.env.VERCEL) {
-  // Load tokens from disk on startup
-  await tokenStore.loadFromDisk();
-
   app.listen(PORT, () => {
     console.log(`🔗 Google OAuth: http://localhost:${PORT}/auth/google`);
     console.log(`💾 Token persistence: ${tokenStore.getHealthStatus().encryptionEnabled ? 'ENABLED' : 'DISABLED (in-memory only)'}`);

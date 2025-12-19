@@ -29,20 +29,19 @@ export const useRenewals = (brokerName) => {
       const r = await axios.get('/api/renewals');
       const fetchedItems = r.data.items || [];
 
-      if (fetchedItems.length === 0 && !initialSyncDone && !triggerSync) {
-        isFetching.current = false;
-        return loadRenewals(true);
-      }
-
       setItems(fetchedItems);
       setDataSource(r.data.source || 'sample');
       if (fetchedItems.length > 0 && !selected) setSelected(fetchedItems[0]);
       setIsConnected(true);
 
-      // Only stop loading if we actually got items, or if we've already tried syncing
-      if (fetchedItems.length > 0 || initialSyncDone || triggerSync) {
-        setLoading(false);
+      // Recursive safety: only sync if we have NO items and haven't tried syncing yet
+      if (fetchedItems.length === 0 && !initialSyncDone && !triggerSync) {
+        setInitialSyncDone(true); // Prevent re-entry
+        isFetching.current = false;
+        return loadRenewals(true);
       }
+
+      setLoading(false);
     } catch (e) {
       setIsConnected(false);
       setLoading(false); // Stop loading on error to show offline screen

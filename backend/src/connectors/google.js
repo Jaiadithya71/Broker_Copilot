@@ -164,7 +164,7 @@ export class GoogleConnector {
   // ===========================================================
   // 📧 FETCH EMAILS (FULL metadata)
   // ===========================================================
-  async fetchEmailsEnriched(maxResults = 50) {
+  async fetchEmailsEnriched(maxResults = 10) {
     try {
       const auth = await this.getAuthenticatedClient();
       const gmail = google.gmail({ version: "v1", auth });

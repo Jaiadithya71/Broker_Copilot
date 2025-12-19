@@ -1,10 +1,6 @@
-/* 
 export const renewals = [
-  { id:"R-1001", clientName:"Nova Manufacturing Pvt Ltd", policyNumber:"POL-IND-2024-001", productLine:"Property Damage & BI", carrier:"Alpha General Insurance", premium:850000, expiryDate:"2026-02-15", status:"Discovery", sourceSystem:"HubSpot", crmRecordId:"HS-9001", lastEmailId:"MSG-1001", recentTouchpoints:1, primaryContactName:"Ananya" },
-  { id:"R-1002", clientName:"Starlight Logistics LLP", policyNumber:"POL-MAR-2024-112", productLine:"Marine Cargo", carrier:"Zenith Marine", premium:420000, expiryDate:"2026-01-05", status:"Pre-Renewal Review", sourceSystem:"HubSpot", crmRecordId:"HS-9002", lastEmailId:"MSG-1002", recentTouchpoints:3, primaryContactName:"Rahul" },
-  { id:"R-1003", clientName:"GreenTrail Foods Ltd", policyNumber:"POL-GL-2024-077", productLine:"General Liability", carrier:"Metro Specialty", premium:315000, expiryDate:"2025-12-30", status:"Pricing Discussion", sourceSystem:"HubSpot", crmRecordId:"HS-9003", lastEmailId:"MSG-1003", recentTouchpoints:2, primaryContactName:"Meera" },
-  { id:"R-1004", clientName:"Skyline IT Services", policyNumber:"POL-CY-2024-205", productLine:"Cyber Liability", carrier:"SecureNet Insurance", premium:1250000, expiryDate:"2025-12-20", status:"Quote Comparison", sourceSystem:"HubSpot", crmRecordId:"HS-9004", lastEmailId:"MSG-1004", recentTouchpoints:0, primaryContactName:"Sanjay" }
+  { id: "R-1001", clientName: "Nova Manufacturing Pvt Ltd", policyNumber: "POL-IND-2024-001", productLine: "Property Damage & BI", carrier: "Alpha General Insurance", premium: 850000, expiryDate: "2026-02-15", status: "Discovery", sourceSystem: "HubSpot", crmRecordId: "HS-9001", lastEmailId: "MSG-1001", recentTouchpoints: 1, primaryContactName: "Ananya" },
+  { id: "R-1002", clientName: "Starlight Logistics LLP", policyNumber: "POL-MAR-2024-112", productLine: "Marine Cargo", carrier: "Zenith Marine", premium: 420000, expiryDate: "2026-01-05", status: "Pre-Renewal Review", sourceSystem: "HubSpot", crmRecordId: "HS-9002", lastEmailId: "MSG-1002", recentTouchpoints: 3, primaryContactName: "Rahul" },
+  { id: "R-1003", clientName: "GreenTrail Foods Ltd", policyNumber: "POL-GL-2024-077", productLine: "General Liability", carrier: "Metro Specialty", premium: 315000, expiryDate: "2025-12-30", status: "Pricing Discussion", sourceSystem: "HubSpot", crmRecordId: "HS-9003", lastEmailId: "MSG-1003", recentTouchpoints: 2, primaryContactName: "Meera" },
+  { id: "R-1004", clientName: "Skyline IT Services", policyNumber: "POL-CY-2024-205", productLine: "Cyber Liability", carrier: "SecureNet Insurance", premium: 1250000, expiryDate: "2025-12-20", status: "Quote Comparison", sourceSystem: "HubSpot", crmRecordId: "HS-9004", lastEmailId: "MSG-1004", recentTouchpoints: 0, primaryContactName: "Sanjay" }
 ];
-*/
-
-export const renewals = [];
